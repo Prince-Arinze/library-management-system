@@ -1,6 +1,6 @@
 # Library Management System API
 
-A small Node.js and Express API for a library management system. Right now, it has a health check at `GET /health`. The book, member, loan, and login features are still to come.
+This is a Node.js and Express API for a library management system. Right now, it has a health check at `GET /health`. The book, member, loan, and login features are still to come.
 
 ## Requirements
 
