@@ -1,8 +1,9 @@
-import "dotenv/config";
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import mongoSanitize from 'express-mongo-sanitize';
+
+import authRouter from "./routes/authRoutes.js"
 
 const app = express();
 app.use(helmet());
@@ -48,6 +49,8 @@ app.get("/health", (_req, res) => {
   });
 });
 
+app.use("/app/auth", authRouter)
+
 app.use((_req, _res, next) => {
   next(Object.assign(new Error("Route not found"), { status: 404 }));
 });
@@ -87,5 +90,8 @@ app.use((error, _req, res, _next) => {
     },
   });
 });
+
+
+
 
 export default app;
