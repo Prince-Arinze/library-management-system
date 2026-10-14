@@ -3,6 +3,7 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import mongoSanitize from 'express-mongo-sanitize';
+import bookRoutes from "./routes/bookRoutes.js";
 
 const app = express();
 app.use(helmet());
@@ -48,6 +49,7 @@ app.get("/health", (_req, res) => {
   });
 });
 
+app.use("/api/books", bookRoutes);
 app.use((_req, _res, next) => {
   next(Object.assign(new Error("Route not found"), { status: 404 }));
 });
