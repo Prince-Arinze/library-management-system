@@ -4,6 +4,8 @@ import helmet from 'helmet';
 import cors from 'cors';
 import mongoSanitize from 'express-mongo-sanitize';
 import bookRoutes from "./routes/bookRoutes.js";
+import borrowingRoutes from "./routes/borrowingRoutes.js"
+
 
 const app = express();
 app.use(helmet());
@@ -89,5 +91,7 @@ app.use((error, _req, res, _next) => {
     },
   });
 });
+
+app.use("/api/borrowings", borrowingRoutes);
 
 export default app;
