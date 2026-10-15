@@ -3,7 +3,8 @@ import helmet from 'helmet';
 import cors from 'cors';
 import mongoSanitize from 'express-mongo-sanitize';
 
-import authRouter from "./routes/authRoutes.js"
+import authRoutes from "./routes/authRoutes.js"
+import userRoutes from "./routes/userRoutes.js"
 
 const app = express();
 app.use(helmet());
@@ -49,7 +50,8 @@ app.get("/health", (_req, res) => {
   });
 });
 
-app.use("/app/auth", authRouter)
+app.use("/app/auth", authRoutes)
+app.use("/users", userRoutes)
 
 app.use((_req, _res, next) => {
   next(Object.assign(new Error("Route not found"), { status: 404 }));
