@@ -48,6 +48,30 @@ const memberSchema = new mongoose.Schema(
   },
 );
 
+// Generate membership number
+memberSchema.pre("validate", async function () {
+  if (!this.isNew || this.membershipNumber) return;
+
+  const year = new Date().getFullYear();
+
+  const lastMember = await this.constructor
+    .findOne({
+      membershipNumber: new RegExp(`^LIB-${year}-`),
+    })
+    .sort({ membershipNumber: -1 })
+    .select("membershipNumber");
+
+  let nextNumber = 1;
+
+  if (lastMember) {
+    const lastNumber = Number(lastMember.membershipNumber.split("-")[2]);
+
+    nextNumber = lastNumber + 1;
+  }
+
+  this.membershipNumber = `LIB-${year}-${String(nextNumber).padStart(4, "0")}`;
+});
+
 const Member = mongoose.model("Member", memberSchema);
 
 export default Member;

@@ -1,8 +1,9 @@
 import "dotenv/config";
-import express from 'express';
-import helmet from 'helmet';
-import cors from 'cors';
-import mongoSanitize from 'express-mongo-sanitize';
+import express from "express";
+import helmet from "helmet";
+import cors from "cors";
+import mongoSanitize from "express-mongo-sanitize";
+import memberRouter from "./routes/memberRoute.js";
 
 const app = express();
 app.use(helmet());
@@ -14,7 +15,11 @@ const allowedOrigins = ["https://test-app.app"];
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || origin.startsWith("http://localhost") || allowedOrigins.includes(origin)) {
+      if (
+        !origin ||
+        origin.startsWith("http://localhost") ||
+        allowedOrigins.includes(origin)
+      ) {
         return callback(null, true);
       }
       callback(new Error("Not allowed by CORS"));
@@ -38,6 +43,8 @@ app.use((req, _res, next) => {
 
   next();
 });
+
+app.use("/api/members", memberRouter);
 
 app.get("/health", (_req, res) => {
   res.json({
