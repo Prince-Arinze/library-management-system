@@ -19,6 +19,9 @@
     "express-mongo-sanitize": "^2.2.0",
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.11.2"
+    "mongoose": "^9.11.2",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-model-validator": "^3.0.21",
+    "swagger-ui-express": "^5.0.1"
   }
 }

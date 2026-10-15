@@ -9,13 +9,11 @@ const allowedFields = [
     "category",
     "publisher",
     "isbn",
-    "bookCode",
     "totalCopies",
     "availableCopies",
     "description",
 ];
 
-// POST /api/books
 export const createBook = asyncHandler(async (req, res) => {
     const data = {};
 

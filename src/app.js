@@ -50,6 +50,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/api/books", bookRoutes);
+
 app.use((_req, _res, next) => {
   next(Object.assign(new Error("Route not found"), { status: 404 }));
 });
