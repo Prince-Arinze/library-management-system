@@ -73,11 +73,11 @@ const swaggerDocument = {
 			get: {
 				tags: ["Books"],
 				summary: "List books",
-				description: "Returns books newest first. Search is a case-insensitive partial match across title, author, bookCode, and ISBN. Category is a case-insensitive partial match. The page size is capped at 100.",
+				description: "Returns books newest first. Search is a case-insensitive literal partial match across title, author, bookCode, and ISBN. Category is a case-insensitive literal partial match. The page size is capped at 100.",
 				operationId: "getBooks",
 				parameters: [
 					{ name: "search", in: "query", schema: { type: "string" }, description: "Case-insensitive partial search across title, author, bookCode, and isbn." },
-					{ name: "category", in: "query", schema: { type: "string" }, description: "Case-insensitive partial match on category." },
+					{ name: "category", in: "query", schema: { type: "string" }, description: "Case-insensitive literal partial match on category; regex characters are treated as plain text." },
 					{ name: "isActive", in: "query", schema: { type: "string", enum: ["true", "false"] }, description: "Filter by active status. If supplied, only the literal strings true or false are accepted." },
 					{ name: "page", in: "query", schema: { type: "integer", minimum: 1, default: 1 }, description: "One-based page number." },
 					{ name: "limit", in: "query", schema: { type: "integer", minimum: 1, maximum: 100, default: 10 }, description: "Results per page." },
