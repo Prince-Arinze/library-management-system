@@ -9,7 +9,7 @@ import swaggerRoutes from "../swagger.js";
 
 import authRoutes from "./routes/authRoutes.js"
 import userRoutes from "./routes/userRoutes.js"
-
+import borrowingRoutes from "./routes/borrowingRoutes.js"
 const app = express();
 app.use(helmet());
 app.use(express.json());
@@ -48,7 +48,7 @@ app.use((req, _res, next) => {
   next();
 });
 
-app.use("/api/members", memberRouter);
+
 
 app.get("/health", (_req, res) => {
   res.json({
@@ -60,9 +60,11 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/api/books", bookRoutes);
-app.use("/api-docs", swaggerRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/users", userRoutes);
+app.use("/api/members", memberRouter);
+app.use("/api/borrowings", borrowingRoutes);
+app.use("/api-docs", swaggerRoutes);
 
 app.use((_req, _res, next) => {
   next(Object.assign(new Error("Route not found"), { status: 404 }));

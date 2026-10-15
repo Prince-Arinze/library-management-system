@@ -66,9 +66,16 @@ You should get:
 | `GET`, `PATCH` | `/api/members/:id` | Retrieve or update a member; admin or librarian |
 | `GET` | `/api/members/:id/borrowings` | List a member's borrowing history; admin or librarian |
 | `PATCH` | `/api/members/:id/deactivate` | Deactivate a member; admin only |
-| `GET`, `POST` | `/api/books` | List or create books |
-| `GET`, `PATCH` | `/api/books/:id` | Retrieve or update a book |
-| `PATCH` | `/api/books/:id/deactivate` | Deactivate a book |
+| `POST` | `/api/borrowings` | Issue a book to a member; admin or librarian |
+| `GET` | `/api/books` | List books; public |
+| `POST` | `/api/books` | Create a book; admin or librarian |
+| `GET` | `/api/books/:id` | Retrieve a book; public |
+| `PATCH` | `/api/books/:id` | Update a book; admin or librarian |
+| `PATCH` | `/api/books/:id/deactivate` | Deactivate a book; admin or librarian |
+| `GET`, `POST` | `/users` | List or create staff users; admin only |
+| `GET`, `PATCH` | `/users/:id` | Retrieve or update a staff user; admin only |
+| `PATCH` | `/users/:id/activate` | Activate a staff user; admin only |
+| `PATCH` | `/users/:id/deactivate` | Deactivate a staff user; admin only |
 
 The API accepts JSON request bodies and allows requests from localhost and `https://test-app.app`. See `/api-docs` for request schemas, authentication requirements, and endpoint responses.
 
@@ -79,6 +86,8 @@ Send `POST /api/auth/login` with an email and password. A successful response co
 To create the first administrator, set `ADMIN_NAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` in `.env`, then run `node createAdmin.js`. The script does not use a default password.
 
 Member routes require `Authorization: Bearer <token>` from an active staff account. Admins and librarians can register, view, and update member records; only admins can deactivate a member. Deactivation retains the record and its borrowing history. Empty borrowing histories return `200` with an empty `data` array.
+
+Creating, updating, or deactivating books and issuing borrowings also requires an active admin or librarian bearer token. Book catalog reads and the health check are public. Staff-user management requires an active admin token.
 
 ## Using the shared helpers
 
