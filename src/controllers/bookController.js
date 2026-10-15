@@ -4,18 +4,16 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import httpError from "../utils/httpError.js";
 
 const allowedFields = [
-  "title",
-  "author",
-  "category",
-  "publisher",
-  "isbn",
-  "bookCode",
-  "totalCopies",
-  "availableCopies",
-  "description",
+    "title",
+    "author",
+    "category",
+    "publisher",
+    "isbn",
+    "totalCopies",
+    "availableCopies",
+    "description",
 ];
 
-// POST /api/books
 export const createBook = asyncHandler(async (req, res) => {
   const data = {};
 
@@ -70,8 +68,10 @@ export const getBooks = asyncHandler(async (req, res) => {
   }
 
   if (category) {
+    const safeCategory = category.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
     filter.category = {
-      $regex: category,
+      $regex: safeCategory,
       $options: "i",
     };
   }
@@ -208,9 +208,9 @@ export const deactivateBook = asyncHandler(async (req, res) => {
   book.isActive = false;
   await book.save();
 
-  res.status(200).json({
-    success: true,
-    message: "Book deactivated successfully.",
-    data: book,
-  });
+    res.status(200).json({
+        success: true,
+        message: "Book deactivated successfully.",
+        data: book,
+    });
 });

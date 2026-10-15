@@ -6,7 +6,7 @@ import httpError from "../utils/httpError.js";
 export const registerMember = asyncHandler(async (req, res) => {
   const { firstName, lastName, email, phone, address } = req.body;
   if (!firstName || !lastName)
-    throw new httpError("First name and last name are required", 400);
+    throw httpError(400, "First name and last name are required");
 
   const member = await Member.create({
     firstName,
@@ -25,7 +25,7 @@ export const registerMember = asyncHandler(async (req, res) => {
 // Getting a single member
 export const getSingleMember = asyncHandler(async (req, res) => {
   const member = await Member.findById(req.params.id);
-  if (!member) throw new httpError("Member not found", 404);
+  if (!member) throw httpError(404, "Member not found");
   res.json({ success: true, data: member });
 });
 
@@ -34,7 +34,7 @@ export const listOfBorrowedBooks = asyncHandler(async (req, res) => {
   const memberId = req.user?.memberId;
 
   if (!memberId) {
-    throw new httpError("Member authentication is required", 401);
+    throw httpError(401, "Member authentication is required");
   }
 
   const borrowings = await Borrowing.find({
@@ -44,7 +44,7 @@ export const listOfBorrowedBooks = asyncHandler(async (req, res) => {
     .sort({ createdAt: -1 });
 
   if (borrowings.length === 0) {
-    throw new httpError("No borrowed books found for this member", 404);
+    throw httpError(404, "No borrowed books found for this member");
   }
 
   res.status(200).json({
@@ -59,13 +59,13 @@ export const deleteMyAccount = asyncHandler(async (req, res) => {
   const memberId = req.user?.memberId;
 
   if (!memberId) {
-    throw new httpError("Authentication required", 401);
+    throw httpError(401, "Member authentication is required");
   }
 
   const member = await Member.findById(memberId);
 
   if (!member) {
-    throw new httpError("Member account not found", 404);
+    throw httpError(404, "Member account not found");
   }
 
   await Member.findByIdAndDelete(memberId);
