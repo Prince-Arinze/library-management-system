@@ -1,27 +1,36 @@
 import "dotenv/config";
-import express from 'express';
-import helmet from 'helmet';
-import cors from 'cors';
-import mongoSanitize from 'express-mongo-sanitize';
+import express from "express";
+import helmet from "helmet";
+import cors from "cors";
+import mongoSanitize from "express-mongo-sanitize";
+
 import bookRoutes from "./routes/bookRoutes.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js";
+import reportRoutes from "./routes/reportRoutes.js";
 
 const app = express();
-app.use(helmet());
-app.use(cors());
-app.use(express.json());
 
-const allowedOrigins = ["https://test-app.app"];
+app.use(helmet());
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || origin.startsWith("http://localhost") || allowedOrigins.includes(origin)) {
+      const allowedOrigins = ["https://test-app.app"];
+
+      if (
+        !origin ||
+        origin.startsWith("http://localhost") ||
+        allowedOrigins.includes(origin)
+      ) {
         return callback(null, true);
       }
+
       callback(new Error("Not allowed by CORS"));
     },
   }),
 );
+
+app.use(express.json());
 
 app.use((req, _res, next) => {
   for (const key of ["body", "params", "headers"]) {
@@ -40,6 +49,7 @@ app.use((req, _res, next) => {
   next();
 });
 
+// Health check
 app.get("/health", (_req, res) => {
   res.json({
     success: true,
@@ -49,11 +59,21 @@ app.get("/health", (_req, res) => {
   });
 });
 
+// Books API
 app.use("/api/books", bookRoutes);
+
+// Dashboard API
+app.use("/api/dashboard", dashboardRoutes);
+
+// Reports API
+app.use("/api/reports", reportRoutes);
+
+// Handle unknown routes
 app.use((_req, _res, next) => {
   next(Object.assign(new Error("Route not found"), { status: 404 }));
 });
 
+// Central error handler
 app.use((error, _req, res, _next) => {
   if (error.name === "ValidationError") {
     return res.status(400).json({
