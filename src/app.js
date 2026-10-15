@@ -7,6 +7,9 @@ import memberRouter from "./routes/memberRoute.js";
 import bookRoutes from "./routes/bookRoutes.js";
 import swaggerRoutes from "../swagger.js";
 
+import authRoutes from "./routes/authRoutes.js"
+import userRoutes from "./routes/userRoutes.js"
+
 const app = express();
 app.use(helmet());
 app.use(cors());
@@ -59,6 +62,8 @@ app.get("/health", (_req, res) => {
 
 app.use("/api/books", bookRoutes);
 app.use("/api-docs", swaggerRoutes);
+app.use("/app/auth", authRoutes);
+app.use("/users", userRoutes);
 
 app.use((_req, _res, next) => {
   next(Object.assign(new Error("Route not found"), { status: 404 }));
