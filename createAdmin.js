@@ -1,22 +1,32 @@
 import dotenv from 'dotenv';
-import connectDB from './src/Config/db.js'
-import User from './Models/userModel.js';
+import { connectDB } from './src/config/dbConnection.js';
+import User from './src/models/userModel.js';
 
 dotenv.config();
-await connectDB();
+
+const name = process.env.ADMIN_NAME?.trim();
+const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+const password = process.env.ADMIN_PASSWORD;
+
+if (!name || !email || !password) {
+  console.error('Set ADMIN_NAME, ADMIN_EMAIL, and ADMIN_PASSWORD before creating the admin account.');
+  process.exit(1);
+}
 
 try {
-  const adminExists = await User.findOne({ email: 'admin@mealmate.com' });
+  await connectDB();
+
+  const adminExists = await User.findOne({ email });
   if (adminExists) {
     console.log('Admin already exists');
     process.exit();
   }
 
   const admin = await User.create({
-    name: 'Super Admin',
-    email: 'admin@mealmate.com',
-    password: 'Admin123!',
-    role: 'admin' // This works here because we are bypassing the controller check
+    name,
+    email,
+    password,
+    role: 'admin'
   });
 
   console.log('ADMIN CREATED:', admin.email);

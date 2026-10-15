@@ -1,57 +1,53 @@
 import User from "../models/userModel.js";
 import { generateToken } from "../utils/generateToken.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import httpError from "../utils/httpError.js";
 
-// POST /api/auth/login - Sign in (PDF Route)
-export const login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
+export const login = asyncHandler(async (req, res) => {
+  const { email, password } = req.body ?? {};
 
-    if (!email ||!password) {
-      return res.status(400).json({ message: "Please provide email and password" });
-    }
+  if (typeof email !== "string" || !email.trim() || typeof password !== "string" || !password) {
+    throw httpError(400, "Email and password are required.");
+  }
 
-    // select +password because schema has select:false
-    const user = await User.findOne({ email }).select("+password");
+  const normalizedEmail = email.trim().toLowerCase();
+  const user = await User.findOne({ email: normalizedEmail }).select("+password");
 
-    if (!user) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
+  if (!user || !user.isActive) {
+    throw httpError(401, "Invalid email or password.");
+  }
 
-    if (!user.isActive) {
-      return res.status(401).json({ message: "Account deactivated" });
-    }
+  const isMatch = await user.correctPassword(password, user.password);
+  if (!isMatch) {
+    throw httpError(401, "Invalid email or password.");
+  }
 
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-
-    res.json({
-      success: true,
+  res.status(200).json({
+    success: true,
+    data: {
       token: generateToken(user._id),
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
-        isActive: user.isActive
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+        isActive: user.isActive,
+      },
+    },
+  });
+});
 
-// GET /api/auth/me - Get the authenticated user (PDF Route)
-export const getMe = async (req, res) => {
-  try {
-    // req.user is set by protect middleware
-    const user = await User.findById(req.user._id);
-    res.json({
-      success: true,
-      user
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+export const getMe = asyncHandler(async (req, res) => {
+  res.status(200).json({
+    success: true,
+    data: {
+      user: {
+        id: req.user._id,
+        name: req.user.name,
+        email: req.user.email,
+        role: req.user.role,
+        isActive: req.user.isActive,
+      },
+    },
+  });
+});

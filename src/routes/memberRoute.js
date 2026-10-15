@@ -3,16 +3,18 @@ import {
   registerMember,
   getSingleMember,
   listOfBorrowedBooks,
-  deleteMyAccount,
-  updateProfile
+  updateMember,
+  deactivateMember,
 } from "../controllers/memberController.js";
+import { protect, authorize } from "../middleware/auth.js";
 
 const memberRouter = express.Router();
 
+memberRouter.use(protect, authorize("admin", "librarian"));
+
 memberRouter.post("/", registerMember);
-memberRouter.get("/:id", getSingleMember);
 memberRouter.get("/:id/borrowings", listOfBorrowedBooks);
-memberRouter.delete("/delete-me", deleteMyAccount);
-memberRouter.patch("/profile/update", updateProfile);
+memberRouter.patch("/:id/deactivate", authorize("admin"), deactivateMember);
+memberRouter.route("/:id").get(getSingleMember).patch(updateMember);
 
 export default memberRouter;

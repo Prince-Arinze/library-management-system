@@ -11,7 +11,6 @@ import { protect, authorize } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// All routes here are admin only - PDF: "List staff accounts; admin only"
 router.use(protect, authorize("admin"));
 
 router.route("/")

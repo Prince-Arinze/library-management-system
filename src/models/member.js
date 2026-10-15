@@ -16,6 +16,10 @@ const memberSchema = new mongoose.Schema(
       type: String,
       lowercase: true,
       trim: true,
+      validate: {
+        validator: (value) => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value),
+        message: "Email must be valid.",
+      },
     },
     phone: {
       type: String,
@@ -48,7 +52,6 @@ const memberSchema = new mongoose.Schema(
   },
 );
 
-// Generate membership number
 memberSchema.pre("validate", async function () {
   if (!this.isNew || this.membershipNumber) return;
 

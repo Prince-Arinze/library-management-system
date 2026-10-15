@@ -18,13 +18,11 @@ export const createBook = asyncHandler(async (req, res) => {
   const data = {};
 
   for (const field of allowedFields) {
-    if (req.body[field] !== undefined) {
+    if (req.body?.[field] !== undefined) {
       data[field] = req.body[field];
     }
   }
 
-  // If the client does not specify available copies,
-  // assume all newly registered copies are available.
   if (data.availableCopies === undefined) {
     data.availableCopies = data.totalCopies;
   }
@@ -37,7 +35,6 @@ export const createBook = asyncHandler(async (req, res) => {
   });
 });
 
-// GET /api/books
 export const getBooks = asyncHandler(async (req, res) => {
   const { search, category, isActive, page = "1", limit = "10" } = req.query;
 
@@ -106,7 +103,6 @@ export const getBooks = asyncHandler(async (req, res) => {
   });
 });
 
-// GET /api/books/:id
 export const getBookById = asyncHandler(async (req, res) => {
   const book = await Book.findById(req.params.id);
 
@@ -120,7 +116,6 @@ export const getBookById = asyncHandler(async (req, res) => {
   });
 });
 
-// PATCH /api/books/:id
 export const updateBook = asyncHandler(async (req, res) => {
   const book = await Book.findById(req.params.id);
 
@@ -131,13 +126,11 @@ export const updateBook = asyncHandler(async (req, res) => {
   const updates = {};
 
   for (const field of allowedFields) {
-    if (req.body[field] !== undefined) {
+    if (req.body?.[field] !== undefined) {
       updates[field] = req.body[field];
     }
   }
 
-  // Copy counts are managed by the issue/return workflows.
-  // Do not let a book update bypass those workflows.
   delete updates.availableCopies;
 
   const newTotal = updates.totalCopies;
@@ -181,7 +174,6 @@ export const updateBook = asyncHandler(async (req, res) => {
   });
 });
 
-// PATCH /api/books/:id/deactivate
 export const deactivateBook = asyncHandler(async (req, res) => {
   const book = await Book.findById(req.params.id);
 
