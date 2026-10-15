@@ -75,3 +75,20 @@ export const deleteMyAccount = asyncHandler(async (req, res) => {
     message: "Your account has been deleted successfully",
   });
 });
+
+// update member profile
+export const updateProfile = asyncHandler(async (req, res) => {
+  const { firstName, lastName, email, phone, address } = req.body;
+  const updateMemberDetails = { firstName, lastName, email, phone, address };
+
+  const member = await Member.findByIdAndUpdate(
+    req.user.id,
+    updateMemberDetails,
+    { new: true, runValidators: true },
+  );
+  res.status(200).json({
+    success: true,
+    message: "Profile Udated successfully",
+    member
+  })
+});

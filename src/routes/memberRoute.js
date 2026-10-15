@@ -4,6 +4,7 @@ import {
   getSingleMember,
   listOfBorrowedBooks,
   deleteMyAccount,
+  updateProfile
 } from "../controllers/memberController.js";
 
 const memberRouter = express.Router();
@@ -11,6 +12,7 @@ const memberRouter = express.Router();
 memberRouter.post("/", registerMember);
 memberRouter.get("/:id", getSingleMember);
 memberRouter.get("/:id/borrowings", listOfBorrowedBooks);
-memberRouter.delete("/me", deleteMyAccount);
+memberRouter.delete("/delete-me", deleteMyAccount);
+memberRouter.delete("/profile/update", updateProfile);
 
 export default memberRouter;
