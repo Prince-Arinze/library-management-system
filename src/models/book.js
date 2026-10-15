@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { randomBytes } from "node:crypto";
 
 const bookSchema = new mongoose.Schema(
   {
@@ -32,6 +33,7 @@ const bookSchema = new mongoose.Schema(
       required: true,
       trim: true,
       unique: true,
+      immutable: true,
     },
     totalCopies: {
       type: Number,
@@ -67,6 +69,10 @@ const bookSchema = new mongoose.Schema(
 );
 
 bookSchema.pre("validate", function () {
+  if (this.isNew) {
+    this.bookCode = `BK-${randomBytes(6).toString("hex").toUpperCase()}`;
+  }
+
   if (this.availableCopies > this.totalCopies) {
     this.invalidate(
       "availableCopies",
