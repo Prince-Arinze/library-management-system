@@ -13,6 +13,6 @@ memberRouter.post("/", registerMember);
 memberRouter.get("/:id", getSingleMember);
 memberRouter.get("/:id/borrowings", listOfBorrowedBooks);
 memberRouter.delete("/delete-me", deleteMyAccount);
-memberRouter.delete("/profile/update", updateProfile);
+memberRouter.patch("/profile/update", updateProfile);
 
 export default memberRouter;
