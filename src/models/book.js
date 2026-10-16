@@ -81,6 +81,8 @@ bookSchema.pre("validate", function () {
   }
 });
 
+bookSchema.index({ isActive: 1, title: 1 }, { name: "isActive_title" });
+
 const Book = mongoose.model("Book", bookSchema);
 
 export default Book;

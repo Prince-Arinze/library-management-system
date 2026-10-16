@@ -4,91 +4,90 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import httpError from "../utils/httpError.js";
 
 export const registerMember = asyncHandler(async (req, res) => {
-  const { firstName, lastName, email, phone, address } = req.body;
-  if (!firstName || !lastName)
-    throw httpError(400, "First name and last name are required");
+  const { firstName, lastName, email, phone, address } = req.body ?? {};
+  if (
+    typeof firstName !== "string" ||
+    !firstName.trim() ||
+    typeof lastName !== "string" ||
+    !lastName.trim()
+  ) {
+    throw httpError(400, "First name and last name are required.");
+  }
 
   const member = await Member.create({
-    firstName,
-    lastName,
+    firstName: firstName.trim(),
+    lastName: lastName.trim(),
     email,
     phone,
     address,
   });
-  res.status(201).json({
+  return res.status(201).json({
     success: true,
-    message: "Member registered succefully.",
     data: member,
   });
 });
 
-// Getting a single member
 export const getSingleMember = asyncHandler(async (req, res) => {
   const member = await Member.findById(req.params.id);
-  if (!member) throw httpError(404, "Member not found");
-  res.json({ success: true, data: member });
+  if (!member) throw httpError(404, "Member not found.");
+  return res.status(200).json({ success: true, data: member });
 });
 
-// Listing of borrowed book
 export const listOfBorrowedBooks = asyncHandler(async (req, res) => {
-  const memberId = req.user?.memberId;
-
-  if (!memberId) {
-    throw httpError(401, "Member authentication is required");
-  }
+  const member = await Member.findById(req.params.id);
+  if (!member) throw httpError(404, "Member not found.");
 
   const borrowings = await Borrowing.find({
-    member: memberId,
+    member: member._id,
   })
     .populate("book", "title author")
     .sort({ createdAt: -1 });
 
-  if (borrowings.length === 0) {
-    throw httpError(404, "No borrowed books found for this member");
-  }
-
-  res.status(200).json({
+  return res.status(200).json({
     success: true,
     count: borrowings.length,
     data: borrowings,
   });
 });
 
-// delete member account
-export const deleteMyAccount = asyncHandler(async (req, res) => {
-  const memberId = req.user?.memberId;
-
-  if (!memberId) {
-    throw httpError(401, "Member authentication is required");
+export const updateMember = asyncHandler(async (req, res) => {
+  const updates = {};
+  for (const field of ["firstName", "lastName", "email", "phone", "address"]) {
+    if (req.body?.[field] !== undefined) updates[field] = req.body[field];
   }
 
-  const member = await Member.findById(memberId);
-
-  if (!member) {
-    throw httpError(404, "Member account not found");
+  if (Object.keys(updates).length === 0) {
+    throw httpError(400, "Provide at least one member field to update.");
   }
+  if (
+    (updates.firstName !== undefined && typeof updates.firstName !== "string") ||
+    (updates.lastName !== undefined && typeof updates.lastName !== "string")
+  ) {
+    throw httpError(400, "First name and last name must be strings.");
+  }
+  if (updates.firstName !== undefined) updates.firstName = updates.firstName.trim();
+  if (updates.lastName !== undefined) updates.lastName = updates.lastName.trim();
 
-  await Member.findByIdAndDelete(memberId);
-
-  res.status(200).json({
-    success: true,
-    message: "Your account has been deleted successfully",
+  const member = await Member.findByIdAndUpdate(req.params.id, updates, {
+    new: true,
+    runValidators: true,
   });
+  if (!member) throw httpError(404, "Member not found.");
+
+  return res.status(200).json({ success: true, data: member });
 });
 
-// update member profile
-export const updateProfile = asyncHandler(async (req, res) => {
-  const { firstName, lastName, email, phone, address } = req.body;
-  const updateMemberDetails = { firstName, lastName, email, phone, address };
-
+export const deactivateMember = asyncHandler(async (req, res) => {
   const member = await Member.findByIdAndUpdate(
-    req.user.id,
-    updateMemberDetails,
+    req.params.id,
+    { status: "inactive" },
     { new: true, runValidators: true },
   );
-  res.status(200).json({
+  if (!member) throw httpError(404, "Member not found.");
+
+  return res.status(200).json({
     success: true,
-    message: "Profile Udated successfully",
-    member
-  })
+    message: "Member deactivated successfully.",
+    data: member,
+  });
 });
