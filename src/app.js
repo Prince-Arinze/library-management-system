@@ -67,7 +67,7 @@ app.use("/api/auth", authRoutes);
 app.use("/users", userRoutes);
 app.use("/api/members", memberRouter);
 app.use("/api/borrowings", borrowingRoutes);
-app.use("/api-docs", swaggerRoutes);
+app.use("/api/api-docs", swaggerRoutes);
 
 // Dashboard API
 app.use("/api/dashboard", dashboardRoutes);
