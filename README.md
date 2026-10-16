@@ -83,7 +83,7 @@ You should get:
 | `PATCH` | `/users/:id/activate` | Activate a staff user; admin only |
 | `PATCH` | `/users/:id/deactivate` | Deactivate a staff user; admin only |
 
-The API accepts JSON request bodies and allows requests from localhost and `https://test-app.app`. See `/api-docs` for request schemas, authentication requirements, and endpoint responses.
+The API accepts JSON request bodies and allows requests from localhost and `https://test-app.app`. See `/api/api-docs` for request schemas, authentication requirements, and endpoint responses.
 
 ### Authentication
 
