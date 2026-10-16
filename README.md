@@ -67,9 +67,10 @@ You should get:
 | `GET` | `/api/members/:id/borrowings` | List a member's borrowing history; superAdmin, admin, or librarian |
 | `PATCH` | `/api/members/:id/deactivate` | Deactivate a member; superAdmin or admin |
 | `POST` | `/api/borrowings` | Issue a book to a member; superAdmin, admin, or librarian |
+| `PATCH` | `/api/borrowings/:id/return` | Return an issued book; superAdmin, admin, or librarian |
 | `GET` | `/api/dashboard/summary` | View inventory, member, and borrowing totals; superAdmin, admin, or librarian |
 | `GET` | `/api/reports/inventory` | View paginated inventory; superAdmin, admin, or librarian |
-| `GET` | `/api/reports/overdue` | View overdue borrowings; superAdmin, admin, or librarian |
+| `GET` | `/api/reports/overdue` | View overdue borrowings with days overdue; superAdmin, admin, or librarian |
 | `GET` | `/api/reports/borrowings` | View borrowing history; superAdmin, admin, or librarian |
 | `GET` | `/api/reports/members` | View paginated member activity; superAdmin, admin, or librarian |
 | `GET` | `/api/reports/returns` | View returned-book history; superAdmin, admin, or librarian |
