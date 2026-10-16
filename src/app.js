@@ -80,9 +80,6 @@ app.use("/api/members", memberRouter);
 app.use("/api/borrowings", borrowingRoutes);
 app.use("/api/api-docs", swaggerRoutes);
 
-// Borrowing API
-app.use("/api/borrowings", borrowingRoutes);
-
 // Dashboard API
 app.use("/api/dashboard", dashboardRoutes);
 
