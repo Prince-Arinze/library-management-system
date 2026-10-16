@@ -37,7 +37,7 @@ export const createBook = asyncHandler(async (req, res) => {
 
 export const getBooks = asyncHandler(async (req, res) => {
   const { search, category, isActive, page = "1", limit = "10" } = req.query;
-  const canViewInactive = ["admin", "librarian"].includes(req.user?.role);
+  const canViewInactive = ["superAdmin", "admin", "librarian"].includes(req.user?.role);
 
   const pageNumber = Number(page);
   const pageSize = Number(limit);
@@ -110,7 +110,7 @@ export const getBooks = asyncHandler(async (req, res) => {
 
 export const getBookById = asyncHandler(async (req, res) => {
   const book = await Book.findById(req.params.id);
-  const canViewInactive = ["admin", "librarian"].includes(req.user?.role);
+  const canViewInactive = ["superAdmin", "admin", "librarian"].includes(req.user?.role);
 
   if (!book || (!book.isActive && !canViewInactive)) {
     throw httpError(404, "Book not found.");
