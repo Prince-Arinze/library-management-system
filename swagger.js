@@ -106,7 +106,7 @@ const swaggerDocument = {
 				security: [{ BearerAuth: [] }],
 				parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/Limit" }],
 				responses: {
-					200: { description: "Overdue total, paginated borrowing records, and generation time.", content: { "application/json": { schema: { $ref: "#/components/schemas/OverdueReportResponse" }, example: { success: true, data: { totalOverdue: 1, borrowings: [{ _id: "66d7f3c8a23b1e0012345680", member: { _id: "66d7f3c8a23b1e0012345678", firstName: "Avery", lastName: "Morgan", membershipNumber: "LIB-2026-0001" }, book: { _id: "66d7f3c8a23b1e0012345679", title: "The Left Hand of Darkness", author: "Ursula K. Le Guin", bookCode: "BK-0123456789AB" }, issuedBy: { _id: "66d7f3c8a23b1e0012345677", name: "Library Staff", email: "staff@example.com" }, borrowedAt: "2026-10-01T12:00:00.000Z", dueDate: "2026-10-10T12:00:00.000Z", returnedAt: null, status: "borrowed", createdAt: "2026-10-01T12:00:00.000Z", updatedAt: "2026-10-01T12:00:00.000Z", __v: 0 }], pagination: { total: 1, page: 1, limit: 10, totalPages: 1 }, generatedAt: "2026-10-16T12:00:00.000Z" } } } } },
+					200: { description: "Overdue total, paginated borrowing records with days overdue, and generation time.", content: { "application/json": { schema: { $ref: "#/components/schemas/OverdueReportResponse" }, example: { success: true, data: { totalOverdue: 1, borrowings: [{ _id: "66d7f3c8a23b1e0012345680", member: { _id: "66d7f3c8a23b1e0012345678", firstName: "Avery", lastName: "Morgan", membershipNumber: "LIB-2026-0001" }, book: { _id: "66d7f3c8a23b1e0012345679", title: "The Left Hand of Darkness", author: "Ursula K. Le Guin", bookCode: "BK-0123456789AB" }, issuedBy: { _id: "66d7f3c8a23b1e0012345677", name: "Library Staff", email: "staff@example.com" }, borrowedAt: "2026-10-01T12:00:00.000Z", dueDate: "2026-10-10T12:00:00.000Z", returnedAt: null, status: "borrowed", daysOverdue: 6, createdAt: "2026-10-01T12:00:00.000Z", updatedAt: "2026-10-01T12:00:00.000Z", __v: 0 }], pagination: { total: 1, page: 1, limit: 10, totalPages: 1 }, generatedAt: "2026-10-16T12:00:00.000Z" } } } } },
 					400: { description: "Invalid pagination values.", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" }, example: { success: false, error: { message: "page must be a positive integer." } } } } },
 					401: { $ref: "#/components/responses/Unauthorized" },
 					403: { $ref: "#/components/responses/Forbidden" },
@@ -409,6 +409,25 @@ const swaggerDocument = {
 				},
 			},
 		},
+		"/api/borrowings/{id}/return": {
+			parameters: [{ $ref: "#/components/parameters/BorrowingId" }],
+			patch: {
+				tags: ["Borrowings"],
+				summary: "Return a borrowed book",
+				description: "Requires an active superAdmin, admin, or librarian account. Marks the borrowing as returned and restores one available copy. A borrowing can be returned only once.",
+				operationId: "returnBook",
+				security: [{ BearerAuth: [] }],
+				responses: {
+					200: { description: "Book returned and inventory restored.", content: { "application/json": { schema: { $ref: "#/components/schemas/BorrowingResponse" }, example: { success: true, data: { _id: "66d7f3c8a23b1e0012345680", member: "66d7f3c8a23b1e0012345676", book: "66d7f3c8a23b1e0012345678", issuedBy: "66d7f3c8a23b1e0012345677", borrowedAt: "2026-10-01T12:00:00.000Z", dueDate: "2026-10-10T12:00:00.000Z", returnedAt: "2026-10-16T12:00:00.000Z", status: "returned" } } } } },
+					400: { description: "The ID is invalid or this borrowing has already been returned.", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" }, examples: { invalidId: { value: { success: false, error: { message: "Invalid identifier" } } }, alreadyReturned: { value: { success: false, error: { message: "This borrowing has already been returned." } } } } } } },
+					401: { $ref: "#/components/responses/Unauthorized" },
+					403: { $ref: "#/components/responses/Forbidden" },
+					404: { description: "The borrowing or its book does not exist.", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" }, example: { success: false, error: { message: "Borrowing not found." } } } } },
+					409: { description: "Inventory already shows all copies available, so it cannot safely be incremented.", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" }, example: { success: false, error: { message: "Available copies already equal total copies." } } } } },
+					500: { $ref: "#/components/responses/InternalServerError" },
+				},
+			},
+		},
 		"/health": {
 			get: {
 				tags: ["Health"],
@@ -523,6 +542,7 @@ const swaggerDocument = {
 		},
 		parameters: {
 			BookId: { name: "id", in: "path", required: true, description: "The book's MongoDB _id, generated automatically and returned by the API. This is not the human-readable bookCode.", schema: { type: "string", pattern: "^[0-9a-fA-F]{24}$", example: "66d7f3c8a23b1e0012345678" } },
+			BorrowingId: { name: "id", in: "path", required: true, description: "MongoDB _id of the borrowing record returned when the book was issued.", schema: { type: "string", pattern: "^[0-9a-fA-F]{24}$", example: "66d7f3c8a23b1e0012345680" } },
 			MemberId: { name: "id", in: "path", required: true, description: "MongoDB ObjectId of the member.", schema: { type: "string", pattern: "^[0-9a-fA-F]{24}$", example: "66d7f3c8a23b1e0012345678" } },
 			StaffId: { name: "id", in: "path", required: true, description: "MongoDB ObjectId of the staff user.", schema: { type: "string", pattern: "^[0-9a-fA-F]{24}$", example: "66d7f3c8a23b1e0012345678" } },
 			Page: { name: "page", in: "query", description: "One-based page number.", schema: { type: "integer", minimum: 1, default: 1 } },
@@ -668,6 +688,23 @@ const swaggerDocument = {
 					__v: { type: "integer", minimum: 0 },
 				},
 			},
+			OverdueBorrowing: {
+				type: "object",
+				allOf: [
+					{ $ref: "#/components/schemas/ReportBorrowing" },
+					{
+						type: "object",
+						required: ["daysOverdue"],
+						properties: {
+							daysOverdue: {
+								type: "integer",
+								minimum: 1,
+								description: "Overdue duration rounded up to a whole day.",
+							},
+						},
+					},
+				],
+			},
 			OverdueReportResponse: {
 				type: "object",
 				required: ["success", "data"],
@@ -678,7 +715,7 @@ const swaggerDocument = {
 						required: ["totalOverdue", "borrowings", "pagination", "generatedAt"],
 						properties: {
 							totalOverdue: { type: "integer", minimum: 0 },
-							borrowings: { type: "array", items: { $ref: "#/components/schemas/ReportBorrowing" } },
+							borrowings: { type: "array", items: { $ref: "#/components/schemas/OverdueBorrowing" } },
 							pagination: { $ref: "#/components/schemas/ReportPagination" },
 							generatedAt: { type: "string", format: "date-time" },
 						},

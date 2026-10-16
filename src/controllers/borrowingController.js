@@ -76,3 +76,50 @@ export const issueBook = asyncHandler(async (req, res) => {
     data: borrowing,
   });
 });
+
+export const returnBook = asyncHandler(async (req, res) => {
+  const returnedAt = new Date();
+  const borrowing = await Borrowing.findOneAndUpdate(
+    { _id: req.params.id, status: "borrowed" },
+    { $set: { status: "returned", returnedAt } },
+    { new: true },
+  );
+
+  if (!borrowing) {
+    const existingBorrowing = await Borrowing.findById(req.params.id);
+    if (!existingBorrowing) throw httpError(404, "Borrowing not found.");
+    throw httpError(400, "This borrowing has already been returned.");
+  }
+
+  const rollbackReturn = () => Borrowing.updateOne(
+    { _id: borrowing._id, status: "returned", returnedAt },
+    { $set: { status: "borrowed", returnedAt: null } },
+  );
+
+  let book;
+  try {
+    book = await Book.findOneAndUpdate(
+      {
+        _id: borrowing.book,
+        $expr: { $lt: ["$availableCopies", "$totalCopies"] },
+      },
+      { $inc: { availableCopies: 1 } },
+      { new: true },
+    );
+  } catch (error) {
+    await rollbackReturn();
+    throw error;
+  }
+
+  if (!book) {
+    await rollbackReturn();
+    const existingBook = await Book.exists({ _id: borrowing.book });
+    if (!existingBook) throw httpError(404, "Book not found.");
+    throw httpError(409, "Available copies already equal total copies.");
+  }
+
+  return res.status(200).json({
+    success: true,
+    data: borrowing,
+  });
+});
