@@ -66,7 +66,7 @@ const swaggerDocument = {
 			get: {
 				tags: ["Dashboard"],
 				summary: "Get dashboard summary",
-				description: "Requires an active admin or librarian account.",
+				description: "Requires an active superAdmin, admin, or librarian account.",
 				operationId: "getDashboardSummary",
 				security: [{ BearerAuth: [] }],
 				responses: {
@@ -84,7 +84,7 @@ const swaggerDocument = {
 			get: {
 				tags: ["Reports"],
 				summary: "Get inventory report",
-				description: "Requires an active admin or librarian account. Includes active book titles and copy totals.",
+				description: "Requires an active superAdmin, admin, or librarian account. Includes active book titles and copy totals.",
 				operationId: "getInventoryReport",
 				security: [{ BearerAuth: [] }],
 				parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/Limit" }],
@@ -101,7 +101,7 @@ const swaggerDocument = {
 			get: {
 				tags: ["Reports"],
 				summary: "Get overdue borrowing report",
-				description: "Requires an active admin or librarian account. Lists unreturned borrowings whose due date has passed.",
+				description: "Requires an active superAdmin, admin, or librarian account. Lists unreturned borrowings whose due date has passed.",
 				operationId: "getOverdueReport",
 				security: [{ BearerAuth: [] }],
 				parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/Limit" }],
@@ -118,7 +118,7 @@ const swaggerDocument = {
 			get: {
 				tags: ["Reports"],
 				summary: "Get borrowing history report",
-				description: "Requires an active admin or librarian account. Optionally filter by borrowed or returned status.",
+				description: "Requires an active superAdmin, admin, or librarian account. Optionally filter by borrowed or returned status.",
 				operationId: "getBorrowingHistoryReport",
 				security: [{ BearerAuth: [] }],
 				parameters: [
@@ -139,7 +139,7 @@ const swaggerDocument = {
 			get: {
 				tags: ["Reports"],
 				summary: "Get member activity report",
-				description: "Requires an active admin or librarian account. Includes borrowing activity for members on the requested page.",
+				description: "Requires an active superAdmin, admin, or librarian account. Includes borrowing activity for members on the requested page.",
 				operationId: "getMemberActivityReport",
 				security: [{ BearerAuth: [] }],
 				parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/Limit" }],
@@ -156,7 +156,7 @@ const swaggerDocument = {
 			get: {
 				tags: ["Reports"],
 				summary: "Get returns report",
-				description: "Requires an active admin or librarian account.",
+				description: "Requires an active superAdmin, admin, or librarian account.",
 				operationId: "getReturnsReport",
 				security: [{ BearerAuth: [] }],
 				parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/Limit" }],
@@ -203,11 +203,11 @@ const swaggerDocument = {
 			get: {
 				tags: ["Administration"],
 				summary: "List staff users",
-				description: "Requires an active admin or superAdmin account.",
+				description: "Requires an active admin or superAdmin account. Admins see librarian accounts; superAdmin sees all staff accounts.",
 				operationId: "getUsers",
 				security: [{ BearerAuth: [] }],
 				responses: {
-					200: { description: "Staff accounts, newest first.", content: { "application/json": { schema: { $ref: "#/components/schemas/AdminUserListResponse" } } } },
+					200: { description: "Librarian accounts for admins; all staff accounts for superAdmin, newest first.", content: { "application/json": { schema: { $ref: "#/components/schemas/AdminUserListResponse" } } } },
 					401: { $ref: "#/components/responses/Unauthorized" },
 					403: { $ref: "#/components/responses/Forbidden" },
 					500: { $ref: "#/components/responses/InternalServerError" },
@@ -235,11 +235,11 @@ const swaggerDocument = {
 			get: {
 				tags: ["Administration"],
 				summary: "Get a staff user",
-				description: "Requires an active admin or superAdmin account.",
+				description: "Requires an active admin or superAdmin account. Admins may view librarian accounts and their own account; superAdmin may view all staff accounts.",
 				operationId: "getUserById",
 				security: [{ BearerAuth: [] }],
 				responses: {
-					200: { description: "The requested staff account.", content: { "application/json": { schema: { $ref: "#/components/schemas/AdminUserResponse" } } } },
+					200: { description: "The requested librarian account, the authenticated admin's own account, or any staff account for superAdmin.", content: { "application/json": { schema: { $ref: "#/components/schemas/AdminUserResponse" } } } },
 					400: { $ref: "#/components/responses/InvalidIdentifier" },
 					401: { $ref: "#/components/responses/Unauthorized" },
 					403: { $ref: "#/components/responses/Forbidden" },
@@ -250,12 +250,12 @@ const swaggerDocument = {
 			patch: {
 				tags: ["Administration"],
 				summary: "Update a staff user",
-				description: "Requires an active admin or superAdmin account. Only superAdmin may manage admin accounts. The superAdmin account cannot be demoted or deactivated, and users cannot change their own role or deactivate themselves.",
+				description: "Requires an active admin or superAdmin account. Admins may update librarian accounts and their own name; only superAdmin may update admin accounts. No user may change their own role or deactivate themselves, and superAdmin cannot be demoted or deactivated.",
 				operationId: "updateUser",
 				security: [{ BearerAuth: [] }],
 				requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/UpdateUserRequest" }, example: { name: "Senior Librarian", role: "librarian", isActive: true } } } },
 				responses: {
-					200: { description: "The updated staff account.", content: { "application/json": { schema: { $ref: "#/components/schemas/AdminUserResponse" } } } },
+					200: { description: "The updated permitted staff account.", content: { "application/json": { schema: { $ref: "#/components/schemas/AdminUserResponse" } } } },
 					400: { description: "Invalid fields, self-lockout attempt, or attempt to demote or deactivate the superAdmin account.", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" }, example: { success: false, error: { message: "The superAdmin account cannot be demoted or deactivated." } } } } },
 					401: { $ref: "#/components/responses/Unauthorized" },
 					403: { description: "The caller is not a superAdmin but attempted to manage an admin account.", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" }, example: { success: false, error: { message: "Only a superAdmin can manage administrator accounts." } } } } },
@@ -304,7 +304,7 @@ const swaggerDocument = {
 			post: {
 				tags: ["Members"],
 				summary: "Register a member",
-				description: "Requires an active admin or librarian account. The membership number is generated by the server.",
+				description: "Requires an active superAdmin, admin, or librarian account. The membership number is generated by the server.",
 				operationId: "registerMember",
 				security: [{ BearerAuth: [] }],
 				requestBody: {
@@ -326,7 +326,7 @@ const swaggerDocument = {
 			get: {
 				tags: ["Members"],
 				summary: "Get a member",
-				description: "Requires an active admin or librarian account.",
+				description: "Requires an active superAdmin, admin, or librarian account.",
 				operationId: "getMember",
 				security: [{ BearerAuth: [] }],
 				responses: {
@@ -341,7 +341,7 @@ const swaggerDocument = {
 			patch: {
 				tags: ["Members"],
 				summary: "Update a member",
-				description: "Requires an active admin or librarian account. Only firstName, lastName, email, phone, and address are updated.",
+				description: "Requires an active superAdmin, admin, or librarian account. Only firstName, lastName, email, phone, and address are updated.",
 				operationId: "updateMember",
 				security: [{ BearerAuth: [] }],
 				requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/UpdateMemberRequest" }, example: { phone: "555-0101", address: "14 Main Street" } } } },
@@ -360,7 +360,7 @@ const swaggerDocument = {
 			get: {
 				tags: ["Members"],
 				summary: "List a member's borrowings",
-				description: "Requires an active admin or librarian account. An empty borrowing history returns an empty data array.",
+				description: "Requires an active superAdmin, admin, or librarian account. An empty borrowing history returns an empty data array.",
 				operationId: "getMemberBorrowings",
 				security: [{ BearerAuth: [] }],
 				responses: {
@@ -378,7 +378,7 @@ const swaggerDocument = {
 			patch: {
 				tags: ["Members"],
 				summary: "Deactivate a member",
-				description: "Requires an active admin account. The member record is retained so borrowing history remains intact.",
+				description: "Requires an active superAdmin or admin account. The member record is retained so borrowing history remains intact.",
 				operationId: "deactivateMember",
 				security: [{ BearerAuth: [] }],
 				responses: {
@@ -395,7 +395,7 @@ const swaggerDocument = {
 			post: {
 				tags: ["Borrowings"],
 				summary: "Issue a book to a member",
-				description: "Requires an active admin or librarian account. The staff user's ID is recorded as issuedBy.",
+				description: "Requires an active superAdmin, admin, or librarian account. The staff user's ID is recorded as issuedBy.",
 				operationId: "issueBook",
 				security: [{ BearerAuth: [] }],
 				requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/IssueBookRequest" }, example: { memberId: "66d7f3c8a23b1e0012345676", bookId: "66d7f3c8a23b1e0012345678", dueDate: "2026-11-15T00:00:00.000Z" } } } },
@@ -426,13 +426,13 @@ const swaggerDocument = {
 			get: {
 				tags: ["Books"],
 				summary: "List books",
-				description: "Returns books newest first. Public requests see active books only; an active admin or librarian bearer token is required to list inactive books with isActive=false. Search is a case-insensitive literal partial match across title, author, bookCode, and ISBN. Category is a case-insensitive literal partial match. The page size is capped at 100.",
+				description: "Returns books newest first. Public requests see active books only; an active superAdmin, admin, or librarian bearer token is required to list inactive books with isActive=false. Search is a case-insensitive literal partial match across title, author, bookCode, and ISBN. Category is a case-insensitive literal partial match. The page size is capped at 100.",
 				operationId: "getBooks",
 				security: [{}, { BearerAuth: [] }],
 				parameters: [
 					{ name: "search", in: "query", schema: { type: "string" }, description: "Case-insensitive partial search across title, author, bookCode, and isbn." },
 					{ name: "category", in: "query", schema: { type: "string" }, description: "Case-insensitive literal partial match on category; regex characters are treated as plain text." },
-					{ name: "isActive", in: "query", schema: { type: "string", enum: ["true", "false"] }, description: "Filter by active status. Public callers may request true; false requires an active admin or librarian token." },
+					{ name: "isActive", in: "query", schema: { type: "string", enum: ["true", "false"] }, description: "Filter by active status. Public callers may request true; false requires an active superAdmin, admin, or librarian token." },
 					{ name: "page", in: "query", schema: { type: "integer", minimum: 1, default: 1 }, description: "One-based page number." },
 					{ name: "limit", in: "query", schema: { type: "integer", minimum: 1, maximum: 100, default: 10 }, description: "Results per page." },
 				],
@@ -447,7 +447,7 @@ const swaggerDocument = {
 			post: {
 				tags: ["Books"],
 				summary: "Create a book",
-				description: "Requires an active admin or librarian account. Creates a book. bookCode is generated by the server. If availableCopies is omitted, it is set to totalCopies. The model defaults isActive to true. Request properties not copied by the controller, including bookCode and isActive, have no effect.",
+				description: "Requires an active superAdmin, admin, or librarian account. Creates a book. bookCode is generated by the server. If availableCopies is omitted, it is set to totalCopies. The model defaults isActive to true. Request properties not copied by the controller, including bookCode and isActive, have no effect.",
 				operationId: "createBook",
 				security: [{ BearerAuth: [] }],
 				requestBody: {
@@ -469,7 +469,7 @@ const swaggerDocument = {
 			get: {
 				tags: ["Books"],
 				summary: "Get a book",
-				description: "Public requests can retrieve active books. An active admin or librarian bearer token is required to retrieve an inactive book.",
+				description: "Public requests can retrieve active books. An active superAdmin, admin, or librarian bearer token is required to retrieve an inactive book.",
 				operationId: "getBookById",
 				security: [{}, { BearerAuth: [] }],
 				responses: {
@@ -483,7 +483,7 @@ const swaggerDocument = {
 			patch: {
 				tags: ["Books"],
 				summary: "Update a book",
-				description: "Requires an active admin or librarian account. Updates only fields accepted by the controller. availableCopies is ignored because copy counts are managed by borrowing workflows. When totalCopies changes, availableCopies is recalculated as totalCopies minus the number of currently borrowed copies. bookCode is immutable and not accepted as an update.",
+				description: "Requires an active superAdmin, admin, or librarian account. Updates only fields accepted by the controller. availableCopies is ignored because copy counts are managed by borrowing workflows. When totalCopies changes, availableCopies is recalculated as totalCopies minus the number of currently borrowed copies. bookCode is immutable and not accepted as an update.",
 				operationId: "updateBook",
 				security: [{ BearerAuth: [] }],
 				requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/UpdateBookRequest" }, example: { title: "The Dispossessed", totalCopies: 6 } } } },
@@ -503,7 +503,7 @@ const swaggerDocument = {
 			patch: {
 				tags: ["Books"],
 				summary: "Deactivate a book",
-				description: "Requires an active admin or librarian account. Sets isActive to false. Deactivation is refused if any borrowing for the book has status borrowed.",
+				description: "Requires an active superAdmin, admin, or librarian account. Sets isActive to false. Deactivation is refused if any borrowing for the book has status borrowed.",
 				operationId: "deactivateBook",
 				security: [{ BearerAuth: [] }],
 				responses: {

@@ -10,8 +10,9 @@ import {
 import { authorize, protect } from "../middleware/auth.js";
 
 const router = express.Router();
+const staffRoles = ["superAdmin", "admin", "librarian"];
 
-router.use(protect, authorize("admin", "librarian"));
+router.use(protect, authorize(...staffRoles));
 
 // GET /api/reports/inventory
 router.get("/inventory", getInventoryReport);

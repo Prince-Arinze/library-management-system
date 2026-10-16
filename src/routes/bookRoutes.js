@@ -10,14 +10,15 @@ import {
 } from "../controllers/bookController.js";
 
 const router = Router();
+const staffRoles = ["superAdmin", "admin", "librarian"];
 
 router.route("/")
-    .post(protect, authorize("admin", "librarian"), createBook)
+    .post(protect, authorize(...staffRoles), createBook)
     .get(optionalProtect, getBooks);
 
-router.patch("/:id/deactivate", protect, authorize("admin", "librarian"), deactivateBook);
+router.patch("/:id/deactivate", protect, authorize(...staffRoles), deactivateBook);
 router.route("/:id")
     .get(optionalProtect, getBookById)
-    .patch(protect, authorize("admin", "librarian"), updateBook);
+    .patch(protect, authorize(...staffRoles), updateBook);
 
 export default router;

@@ -62,26 +62,26 @@ You should get:
 | `GET` | `/health` | Confirms the API process is responding |
 | `POST` | `/api/auth/login` | Sign in with an email and password |
 | `GET` | `/api/auth/me` | Return the signed-in staff account; requires a bearer token |
-| `POST` | `/api/members` | Register a member; admin or librarian |
-| `GET`, `PATCH` | `/api/members/:id` | Retrieve or update a member; admin or librarian |
-| `GET` | `/api/members/:id/borrowings` | List a member's borrowing history; admin or librarian |
-| `PATCH` | `/api/members/:id/deactivate` | Deactivate a member; admin only |
-| `POST` | `/api/borrowings` | Issue a book to a member; admin or librarian |
-| `GET` | `/api/dashboard/summary` | View inventory, member, and borrowing totals; admin or librarian |
-| `GET` | `/api/reports/inventory` | View paginated inventory; admin or librarian |
-| `GET` | `/api/reports/overdue` | View overdue borrowings; admin or librarian |
-| `GET` | `/api/reports/borrowings` | View borrowing history; admin or librarian |
-| `GET` | `/api/reports/members` | View paginated member activity; admin or librarian |
-| `GET` | `/api/reports/returns` | View returned-book history; admin or librarian |
+| `POST` | `/api/members` | Register a member; superAdmin, admin, or librarian |
+| `GET`, `PATCH` | `/api/members/:id` | Retrieve or update a member; superAdmin, admin, or librarian |
+| `GET` | `/api/members/:id/borrowings` | List a member's borrowing history; superAdmin, admin, or librarian |
+| `PATCH` | `/api/members/:id/deactivate` | Deactivate a member; superAdmin or admin |
+| `POST` | `/api/borrowings` | Issue a book to a member; superAdmin, admin, or librarian |
+| `GET` | `/api/dashboard/summary` | View inventory, member, and borrowing totals; superAdmin, admin, or librarian |
+| `GET` | `/api/reports/inventory` | View paginated inventory; superAdmin, admin, or librarian |
+| `GET` | `/api/reports/overdue` | View overdue borrowings; superAdmin, admin, or librarian |
+| `GET` | `/api/reports/borrowings` | View borrowing history; superAdmin, admin, or librarian |
+| `GET` | `/api/reports/members` | View paginated member activity; superAdmin, admin, or librarian |
+| `GET` | `/api/reports/returns` | View returned-book history; superAdmin, admin, or librarian |
 | `GET` | `/api/books` | List books; public |
-| `POST` | `/api/books` | Create a book; admin or librarian |
+| `POST` | `/api/books` | Create a book; superAdmin, admin, or librarian |
 | `GET` | `/api/books/:id` | Retrieve a book; public |
-| `PATCH` | `/api/books/:id` | Update a book; admin or librarian |
-| `PATCH` | `/api/books/:id/deactivate` | Deactivate a book; admin or librarian |
-| `GET`, `POST` | `/users` | List staff users; admins create librarians, superAdmin can also create admins |
-| `GET`, `PATCH` | `/users/:id` | Retrieve or update a staff user; admin or superAdmin |
-| `PATCH` | `/users/:id/activate` | Activate a staff user; admin or superAdmin |
-| `PATCH` | `/users/:id/deactivate` | Deactivate a staff user; admin or superAdmin |
+| `PATCH` | `/api/books/:id` | Update a book; superAdmin, admin, or librarian |
+| `PATCH` | `/api/books/:id/deactivate` | Deactivate a book; superAdmin, admin, or librarian |
+| `GET`, `POST` | `/users` | Admins list/create librarians; superAdmin lists all and can create admins |
+| `GET`, `PATCH` | `/users/:id` | Admins access librarian accounts and their own; superAdmin accesses all |
+| `PATCH` | `/users/:id/activate` | Admins activate librarians; superAdmin can activate admins too |
+| `PATCH` | `/users/:id/deactivate` | Admins deactivate librarians; superAdmin can deactivate admins too |
 
 The API accepts JSON request bodies and allows requests from localhost and `https://test-app.app`. See `/api/api-docs` for request schemas, authentication requirements, and endpoint responses.
 
@@ -91,9 +91,9 @@ Send `POST /api/auth/login` with an email and password. A successful response co
 
 To create the first superAdmin, set `ADMIN_NAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` in `.env`, then run `node createAdmin.js`. The script creates a superAdmin, or promotes the configured existing admin if no superAdmin exists. It does not use a default password.
 
-Member routes require `Authorization: Bearer <token>` from an active staff account. Admins and librarians can register, view, and update member records; only admins can deactivate a member. Deactivation retains the record and its borrowing history. Empty borrowing histories return `200` with an empty `data` array.
+Member routes require `Authorization: Bearer <token>` from an active staff account. Admins, librarians, and superAdmin can register, view, and update member records; admins and superAdmin can deactivate a member. Deactivation retains the record and its borrowing history. Empty borrowing histories return `200` with an empty `data` array.
 
-Creating, updating, or deactivating books, issuing borrowings, and viewing dashboard or report data requires an active admin or librarian bearer token. Book catalog reads and the health check are public. Public catalog reads show active books only; an active admin or librarian token is required to view inactive books. Staff-user management requires an active admin or superAdmin token. Admins can manage librarian accounts; only superAdmin can create, update, activate, or deactivate admin accounts. Staff deletion is a soft deactivation so borrowing audit history is preserved. A superAdmin cannot be demoted or deactivated through the API.
+Creating, updating, or deactivating books, issuing borrowings, and viewing dashboard or report data requires an active superAdmin, admin, or librarian bearer token. Book catalog reads and the health check are public. Public catalog reads show active books only; an active superAdmin, admin, or librarian token is required to view inactive books. Staff-user management requires an active admin or superAdmin token. Admins can manage librarian accounts; only superAdmin can create, update, activate, or deactivate admin accounts. Admin users see librarian accounts in staff lists and can view their own account; superAdmin can view all staff accounts. Staff deletion is a soft deactivation so borrowing audit history is preserved. A superAdmin cannot be demoted or deactivated through the API.
 
 ## Using the shared helpers
 

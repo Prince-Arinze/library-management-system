@@ -29,8 +29,9 @@ const requireSuperAdminForPrivilegedUser = (user, requester) => {
   }
 };
 
-export const getUsers = asyncHandler(async (_req, res) => {
-  const users = await User.find().sort({ createdAt: -1 });
+export const getUsers = asyncHandler(async (req, res) => {
+  const filter = req.user.role === "superAdmin" ? {} : { role: "librarian" };
+  const users = await User.find(filter).sort({ createdAt: -1 });
   return res.status(200).json({
     success: true,
     count: users.length,
@@ -41,6 +42,7 @@ export const getUsers = asyncHandler(async (_req, res) => {
 export const getUserById = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) throw httpError(404, "User not found.");
+  requireSuperAdminForPrivilegedUser(user, req.user);
 
   return res.status(200).json({ success: true, data: toUserResponse(user) });
 });
@@ -105,15 +107,20 @@ export const updateUser = asyncHandler(async (req, res) => {
   if (updates.role !== undefined && !allowedRoles.includes(updates.role)) {
     throw httpError(400, "Role must be admin or librarian.");
   }
-  if (updates.role === "admin" && req.user.role !== "superAdmin") {
-    throw httpError(403, "Only a superAdmin can assign the administrator role.");
-  }
   if (updates.isActive !== undefined && typeof updates.isActive !== "boolean") {
     throw httpError(400, "isActive must be a boolean.");
   }
 
   const user = await User.findById(req.params.id);
   if (!user) throw httpError(404, "User not found.");
+
+  if (
+    updates.role === "admin" &&
+    user.role !== "admin" &&
+    req.user.role !== "superAdmin"
+  ) {
+    throw httpError(403, "Only a superAdmin can assign the administrator role.");
+  }
 
   requireSuperAdminForPrivilegedUser(user, req.user);
 
