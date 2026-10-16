@@ -37,6 +37,7 @@ export const createBook = asyncHandler(async (req, res) => {
 
 export const getBooks = asyncHandler(async (req, res) => {
   const { search, category, isActive, page = "1", limit = "10" } = req.query;
+  const canViewInactive = ["admin", "librarian"].includes(req.user?.role);
 
   const pageNumber = Number(page);
   const pageSize = Number(limit);
@@ -60,8 +61,13 @@ export const getBooks = asyncHandler(async (req, res) => {
     if (!["true", "false"].includes(isActive)) {
       throw httpError(400, "isActive must be true or false.");
     }
+    if (isActive === "false" && !canViewInactive) {
+      throw httpError(403, "Authentication required to view inactive books.");
+    }
 
     filter.isActive = isActive === "true";
+  } else if (!canViewInactive) {
+    filter.isActive = true;
   }
 
   if (category) {
@@ -105,8 +111,9 @@ export const getBooks = asyncHandler(async (req, res) => {
 
 export const getBookById = asyncHandler(async (req, res) => {
   const book = await Book.findById(req.params.id);
+  const canViewInactive = ["admin", "librarian"].includes(req.user?.role);
 
-  if (!book) {
+  if (!book || (!book.isActive && !canViewInactive)) {
     throw httpError(404, "Book not found.");
   }
 

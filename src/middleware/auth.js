@@ -38,6 +38,11 @@ export const protect = asyncHandler(async (req, _res, next) => {
   return next();
 });
 
+export const optionalProtect = (req, res, next) => {
+  if (!req.get("authorization")) return next();
+  return protect(req, res, next);
+};
+
 export const authorize = (...roles) => {
   return (req, res, next) => {
     if (!req.user) {
