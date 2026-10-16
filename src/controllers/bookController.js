@@ -9,24 +9,20 @@ const allowedFields = [
   "category",
   "publisher",
   "isbn",
-  "bookCode",
   "totalCopies",
   "availableCopies",
   "description",
 ];
 
-// POST /api/books
 export const createBook = asyncHandler(async (req, res) => {
   const data = {};
 
   for (const field of allowedFields) {
-    if (req.body[field] !== undefined) {
+    if (req.body?.[field] !== undefined) {
       data[field] = req.body[field];
     }
   }
 
-  // If the client does not specify available copies,
-  // assume all newly registered copies are available.
   if (data.availableCopies === undefined) {
     data.availableCopies = data.totalCopies;
   }
@@ -39,9 +35,9 @@ export const createBook = asyncHandler(async (req, res) => {
   });
 });
 
-// GET /api/books
 export const getBooks = asyncHandler(async (req, res) => {
   const { search, category, isActive, page = "1", limit = "10" } = req.query;
+  const canViewInactive = ["superAdmin", "admin", "librarian"].includes(req.user?.role);
 
   const pageNumber = Number(page);
   const pageSize = Number(limit);
@@ -65,13 +61,20 @@ export const getBooks = asyncHandler(async (req, res) => {
     if (!["true", "false"].includes(isActive)) {
       throw httpError(400, "isActive must be true or false.");
     }
+    if (isActive === "false" && !canViewInactive) {
+      throw httpError(403, "Authentication required to view inactive books.");
+    }
 
     filter.isActive = isActive === "true";
+  } else if (!canViewInactive) {
+    filter.isActive = true;
   }
 
   if (category) {
+    const safeCategory = category.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
     filter.category = {
-      $regex: category,
+      $regex: safeCategory,
       $options: "i",
     };
   }
@@ -93,7 +96,6 @@ export const getBooks = asyncHandler(async (req, res) => {
     Book.find(filter).sort({ createdAt: -1 }).skip(skip).limit(pageSize),
     Book.countDocuments(filter),
   ]);
-
   res.status(200).json({
     success: true,
     data: books,
@@ -106,11 +108,11 @@ export const getBooks = asyncHandler(async (req, res) => {
   });
 });
 
-// GET /api/books/:id
 export const getBookById = asyncHandler(async (req, res) => {
   const book = await Book.findById(req.params.id);
+  const canViewInactive = ["superAdmin", "admin", "librarian"].includes(req.user?.role);
 
-  if (!book) {
+  if (!book || (!book.isActive && !canViewInactive)) {
     throw httpError(404, "Book not found.");
   }
 
@@ -120,7 +122,6 @@ export const getBookById = asyncHandler(async (req, res) => {
   });
 });
 
-// PATCH /api/books/:id
 export const updateBook = asyncHandler(async (req, res) => {
   const book = await Book.findById(req.params.id);
 
@@ -131,13 +132,11 @@ export const updateBook = asyncHandler(async (req, res) => {
   const updates = {};
 
   for (const field of allowedFields) {
-    if (req.body[field] !== undefined) {
+    if (req.body?.[field] !== undefined) {
       updates[field] = req.body[field];
     }
   }
 
-  // Copy counts are managed by the issue/return workflows.
-  // Do not let a book update bypass those workflows.
   delete updates.availableCopies;
 
   const newTotal = updates.totalCopies;
@@ -181,7 +180,6 @@ export const updateBook = asyncHandler(async (req, res) => {
   });
 });
 
-// PATCH /api/books/:id/deactivate
 export const deactivateBook = asyncHandler(async (req, res) => {
   const book = await Book.findById(req.params.id);
 

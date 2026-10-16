@@ -1,21 +1,10 @@
-
 import { Router } from "express";
-
-import {
-  returnBook,
-  getBorrowingHistory,
-  getOverdueBorrowings,
-} from "../controllers/borrowingController.js";
+import { issueBook } from "../controllers/borrowingController.js";
+import { authorize, protect } from "../middleware/auth.js";
 
 const router = Router();
+const staffRoles = ["superAdmin", "admin", "librarian"];
 
-// GET /api/borrowings/overdue
-router.get("/overdue", getOverdueBorrowings);
-
-// GET /api/borrowings
-router.get("/", getBorrowingHistory);
-
-// PATCH /api/borrowings/:id/return
-router.patch("/:id/return", returnBook);
+router.post("/", protect, authorize(...staffRoles), issueBook);
 
 export default router;

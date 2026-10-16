@@ -1,281 +1,78 @@
-import mongoose from "mongoose";
 import Book from "../models/book.js";
+import Member from "../models/member.js";
 import Borrowing from "../models/borrowing.js";
-import User from "../models/user.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import httpError from "../utils/httpError.js";
 
-const DEFAULT_PAGE = 1;
-const DEFAULT_LIMIT = 10;
-const MAX_LIMIT = 100;
+export const issueBook = asyncHandler(async (req, res) => {
+  const { memberId, bookId, dueDate } = req.body ?? {};
 
-function getPagination(query) {
-  function parsePositiveInteger(value, name, defaultValue, maxValue) {
-    if (value === undefined) {
-      return defaultValue;
-    }
-
-    if (typeof value !== "string" || !/^[1-9]\d*$/.test(value)) {
-      throw httpError(400, `${name} must be a positive integer.`);
-    }
-
-    const parsed = Number(value);
-
-    if (!Number.isSafeInteger(parsed)) {
-      throw httpError(400, `${name} is too large.`);
-    }
-
-    if (maxValue !== undefined && parsed > maxValue) {
-      throw httpError(400, `${name} cannot exceed ${maxValue}.`);
-    }
-
-    return parsed;
+  if (!memberId || !bookId || !dueDate) {
+    throw httpError(400, "memberId, bookId, and dueDate are required.");
   }
 
-  const page = parsePositiveInteger(query.page, "page", DEFAULT_PAGE);
+  const objectIdPattern = /^[0-9a-fA-F]{24}$/;
+  if (
+    typeof memberId !== "string" ||
+    !objectIdPattern.test(memberId) ||
+    typeof bookId !== "string" ||
+    !objectIdPattern.test(bookId)
+  ) {
+    throw httpError(400, "Invalid memberId or bookId format.");
+  }
 
-  const limit = parsePositiveInteger(
-    query.limit,
-    "limit",
-    DEFAULT_LIMIT,
-    MAX_LIMIT,
+  const parsedDueDate = new Date(dueDate);
+  if (typeof dueDate !== "string" || Number.isNaN(parsedDueDate.getTime())) {
+    throw httpError(400, "Invalid dueDate format.");
+  }
+
+  if (parsedDueDate <= new Date()) {
+    throw httpError(400, "dueDate must be a future date.");
+  }
+
+  const member = await Member.findById(memberId);
+  if (!member) {
+    throw httpError(404, "Member not found.");
+  }
+  if (member.status !== "active") {
+    throw httpError(400, "Member is inactive and cannot borrow books.");
+  }
+
+  const updatedBook = await Book.findOneAndUpdate(
+    { _id: bookId, isActive: true, availableCopies: { $gt: 0 } },
+    { $inc: { availableCopies: -1 } },
+    { new: true }
   );
 
-  const skip = (page - 1) * limit;
-
-  if (!Number.isSafeInteger(skip)) {
-    throw httpError(400, "Requested page is too large.");
-  }
-
-  return { page, limit, skip };
-}
-
-function buildPagination(total, page, limit) {
-  return {
-    total,
-    page,
-    limit,
-    totalPages: Math.ceil(total / limit),
-  };
-}
-
-function validateObjectId(value, name) {
-  if (typeof value !== "string" || !mongoose.Types.ObjectId.isValid(value)) {
-    throw httpError(400, `Invalid ${name}.`);
-  }
-}
-
-// PATCH /api/borrowings/:id/return
-export const returnBook = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-
-  validateObjectId(id, "borrowing ID");
-
-  const returnedAt = new Date();
-
-  // Only one concurrent request can change this record
-  // from borrowed to returned.
-  const borrowing = await Borrowing.findOneAndUpdate(
-    {
-      _id: id,
-      status: "borrowed",
-    },
-    {
-      $set: {
-        status: "returned",
-        returnedAt,
-      },
-    },
-
-    {
-      returnDocument: "after",
-      runValidators: true,
-    },
-  );
-
-  if (!borrowing) {
-    const existingBorrowing = await Borrowing.findById(id);
-
-    if (!existingBorrowing) {
-      throw httpError(404, "Borrowing record not found.");
+  if (!updatedBook) {
+    const book = await Book.findById(bookId);
+    if (!book) {
+      throw httpError(404, "Book not found.");
     }
-
-    throw httpError(409, "This book has already been returned.");
+    if (!book.isActive) {
+      throw httpError(400, "This book is currently inactive and cannot be issued.");
+    }
+    throw httpError(400, "No copies of this book are currently available.");
   }
 
-  // Restore exactly one copy, provided inventory is below
-  // the book's registered total.
+  let borrowing;
   try {
-    const updatedBook = await Book.findOneAndUpdate(
-      {
-        _id: borrowing.book,
-        $expr: {
-          $lt: ["$availableCopies", "$totalCopies"],
-        },
-      },
-      {
-        $inc: {
-          availableCopies: 1,
-        },
-      },
-
-      {
-        returnDocument: "after",
-      },
-    );
-
-    if (!updatedBook) {
-      // Roll back the borrowing status if inventory cannot
-      // be restored, so a retry remains possible.
-      await Borrowing.updateOne(
-        {
-          _id: borrowing._id,
-          status: "returned",
-          returnedAt,
-        },
-        {
-          $set: {
-            status: "borrowed",
-            returnedAt: null,
-          },
-        },
-      );
-
-      throw httpError(
-        409,
-        "Could not restore inventory. Check the book record and copy counts.",
-      );
-    }
+    borrowing = await Borrowing.create({
+      member: member._id,
+      book: updatedBook._id,
+      issuedBy: req.user._id,
+      dueDate: parsedDueDate,
+    });
   } catch (error) {
-    // Avoid leaving a returned record if the inventory update
-    // itself fails with a database error.
-    if (error.status !== 409) {
-      await Borrowing.updateOne(
-        {
-          _id: borrowing._id,
-          status: "returned",
-          returnedAt,
-        },
-        {
-          $set: {
-            status: "borrowed",
-            returnedAt: null,
-          },
-        },
-      );
-    }
-
+    await Book.updateOne(
+      { _id: updatedBook._id },
+      { $inc: { availableCopies: 1 } },
+    );
     throw error;
   }
 
-  const result = await Borrowing.findById(borrowing._id)
-    .populate("member", "firstName lastName membershipNumber")
-    .populate("book", "title author bookCode")
-    .populate({
-      path: "issuedBy",
-      model: User,
-      select: "name email",
-    })
-    .lean();
-
-  res.status(200).json({
+  res.status(201).json({
     success: true,
-    message: "Book returned successfully.",
-    data: result,
-  });
-});
-
-// GET /api/borrowings
-// Optional: ?status=borrowed&page=1&limit=10
-// Optional: ?status=returned
-// Optional: ?memberId=...&bookId=...
-export const getBorrowingHistory = asyncHandler(async (req, res) => {
-  const { page, limit, skip } = getPagination(req.query);
-  const filter = {};
-
-  if (req.query.status !== undefined) {
-    if (
-      typeof req.query.status !== "string" ||
-      !["borrowed", "returned"].includes(req.query.status)
-    ) {
-      throw httpError(400, "Status must be borrowed or returned.");
-    }
-
-    filter.status = req.query.status;
-  }
-
-  if (req.query.memberId !== undefined) {
-    validateObjectId(req.query.memberId, "memberId");
-    filter.member = req.query.memberId;
-  }
-
-  if (req.query.bookId !== undefined) {
-    validateObjectId(req.query.bookId, "bookId");
-    filter.book = req.query.bookId;
-  }
-
-  const [total, borrowings] = await Promise.all([
-    Borrowing.countDocuments(filter),
-
-    Borrowing.find(filter)
-      .populate("member", "firstName lastName membershipNumber")
-      .populate("book", "title author bookCode")
-      .populate({
-        path: "issuedBy",
-        model: User,
-        select: "name email",
-      })
-      .sort({ borrowedAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean(),
-  ]);
-
-  res.status(200).json({
-    success: true,
-    data: {
-      total,
-      borrowings,
-      pagination: buildPagination(total, page, limit),
-    },
-  });
-});
-
-// GET /api/borrowings/overdue
-// Optional: ?page=1&limit=10
-export const getOverdueBorrowings = asyncHandler(async (req, res) => {
-  const { page, limit, skip } = getPagination(req.query);
-  const now = new Date();
-
-  const filter = {
-    status: "borrowed",
-    dueDate: { $lt: now },
-  };
-
-  const [totalOverdue, borrowings] = await Promise.all([
-    Borrowing.countDocuments(filter),
-
-    Borrowing.find(filter)
-      .populate("member", "firstName lastName membershipNumber")
-      .populate("book", "title author bookCode")
-      .populate({
-        path: "issuedBy",
-        model: User,
-        select: "name email",
-      })
-      .sort({ dueDate: 1 })
-      .skip(skip)
-      .limit(limit)
-      .lean(),
-  ]);
-
-  res.status(200).json({
-    success: true,
-    data: {
-      totalOverdue,
-      borrowings,
-      pagination: buildPagination(totalOverdue, page, limit),
-      generatedAt: now,
-    },
+    data: borrowing,
   });
 });
