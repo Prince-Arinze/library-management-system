@@ -15,16 +15,27 @@ import borrowingRoutes from "./routes/borrowingRoutes.js"
 const app = express();
 app.use(helmet());
 
-const allowedOrigins = ["https://test-app.app"];
+const allowedOrigins = [
+  "https://library-management-system-9wtq.onrender.com",
+];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (
-        !origin ||
-        origin.startsWith("http://localhost") ||
-        allowedOrigins.includes(origin)
-      ) {
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      let parsedOrigin;
+      try {
+        parsedOrigin = new URL(origin);
+      } catch {
+        return callback(new Error("Not allowed by CORS"));
+      }
+
+      const isLocalhost = parsedOrigin.hostname === "localhost";
+
+      if (isLocalhost || allowedOrigins.includes(parsedOrigin.origin)) {
         return callback(null, true);
       }
 
