@@ -50,7 +50,7 @@ const swaggerDocument = {
 		version: "1.0.0",
 		description: "API reference for the Library Management System. Book catalog reads are public; member, dashboard, report, and staff operations require an active staff bearer token.",
 	},
-	servers: [{ url: "/", description: "Library API (same host)" }],
+	servers: [{ url: "https://library-management-system-9wtq.onrender.com", description: "Library API" }],
 	tags: [
 		{ name: "Health", description: "Service availability" },
 		{ name: "Authentication", description: "Sign in and retrieve the current user" },
