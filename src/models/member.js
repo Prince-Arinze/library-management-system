@@ -75,6 +75,12 @@ memberSchema.pre("validate", async function () {
   this.membershipNumber = `LIB-${year}-${String(nextNumber).padStart(4, "0")}`;
 });
 
+memberSchema.index(
+  { lastName: 1, firstName: 1 },
+  { name: "lastName_firstName" },
+);
+memberSchema.index({ status: 1 }, { name: "status" });
+
 const Member = mongoose.model("Member", memberSchema);
 
 export default Member;

@@ -67,6 +67,12 @@ You should get:
 | `GET` | `/api/members/:id/borrowings` | List a member's borrowing history; admin or librarian |
 | `PATCH` | `/api/members/:id/deactivate` | Deactivate a member; admin only |
 | `POST` | `/api/borrowings` | Issue a book to a member; admin or librarian |
+| `GET` | `/api/dashboard/summary` | View inventory, member, and borrowing totals; admin or librarian |
+| `GET` | `/api/reports/inventory` | View paginated inventory; admin or librarian |
+| `GET` | `/api/reports/overdue` | View overdue borrowings; admin or librarian |
+| `GET` | `/api/reports/borrowings` | View borrowing history; admin or librarian |
+| `GET` | `/api/reports/members` | View paginated member activity; admin or librarian |
+| `GET` | `/api/reports/returns` | View returned-book history; admin or librarian |
 | `GET` | `/api/books` | List books; public |
 | `POST` | `/api/books` | Create a book; admin or librarian |
 | `GET` | `/api/books/:id` | Retrieve a book; public |
@@ -87,7 +93,7 @@ To create the first administrator, set `ADMIN_NAME`, `ADMIN_EMAIL`, and `ADMIN_P
 
 Member routes require `Authorization: Bearer <token>` from an active staff account. Admins and librarians can register, view, and update member records; only admins can deactivate a member. Deactivation retains the record and its borrowing history. Empty borrowing histories return `200` with an empty `data` array.
 
-Creating, updating, or deactivating books and issuing borrowings also requires an active admin or librarian bearer token. Book catalog reads and the health check are public. Public catalog reads show active books only; an active admin or librarian token is required to view inactive books. Staff-user management requires an active admin token.
+Creating, updating, or deactivating books, issuing borrowings, and viewing dashboard or report data requires an active admin or librarian bearer token. Book catalog reads and the health check are public. Public catalog reads show active books only; an active admin or librarian token is required to view inactive books. Staff-user management requires an active admin token.
 
 ## Using the shared helpers
 

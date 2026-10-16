@@ -48,7 +48,7 @@ const swaggerDocument = {
 	info: {
 		title: "Library Management System API",
 		version: "1.0.0",
-		description: "API reference for the endpoints currently registered by the Library Management System backend. Book catalog reads are public; staff mutations require a bearer token.",
+		description: "API reference for the Library Management System. Book catalog reads are public; member, dashboard, report, and staff operations require an active staff bearer token.",
 	},
 	servers: [{ url: "/", description: "Current host" }],
 	tags: [
@@ -58,8 +58,117 @@ const swaggerDocument = {
 			{ name: "Members", description: "Staff-managed member records and borrowing history" },
 		{ name: "Borrowings", description: "Staff-issued book borrowings" },
 		{ name: "Books", description: "Create, search, retrieve, update, and deactivate books" },
+		{ name: "Dashboard", description: "Staff-only library summary" },
+		{ name: "Reports", description: "Staff-only inventory, borrowing, and member reports" },
 	],
 	paths: {
+		"/api/dashboard/summary": {
+			get: {
+				tags: ["Dashboard"],
+				summary: "Get dashboard summary",
+				description: "Requires an active admin or librarian account.",
+				operationId: "getDashboardSummary",
+				security: [{ BearerAuth: [] }],
+				responses: {
+					200: {
+						description: "Active book inventory, member totals, current borrowings, overdue borrowings, and generation time.",
+						content: { "application/json": { schema: { $ref: "#/components/schemas/DashboardSummaryResponse" }, example: { success: true, data: { books: { activeTitles: 42, totalCopies: 80, availableCopies: 62 }, members: { total: 27, active: 24 }, borrowings: { current: 18, overdue: 3 }, generatedAt: "2026-10-16T12:00:00.000Z" } } } },
+					},
+					401: { $ref: "#/components/responses/Unauthorized" },
+					403: { $ref: "#/components/responses/Forbidden" },
+					500: { $ref: "#/components/responses/InternalServerError" },
+				},
+			},
+		},
+		"/api/reports/inventory": {
+			get: {
+				tags: ["Reports"],
+				summary: "Get inventory report",
+				description: "Requires an active admin or librarian account. Includes active book titles and copy totals.",
+				operationId: "getInventoryReport",
+				security: [{ BearerAuth: [] }],
+				parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/Limit" }],
+				responses: {
+					200: { description: "Inventory summary, paginated books, and pagination metadata.", content: { "application/json": { schema: { $ref: "#/components/schemas/InventoryReportResponse" }, example: { success: true, data: { summary: { totalTitles: 42, totalCopies: 80, availableCopies: 62 }, books: [{ _id: "66d7f3c8a23b1e0012345678", title: "The Left Hand of Darkness", author: "Ursula K. Le Guin", category: "Science Fiction", bookCode: "BK-0123456789AB", totalCopies: 4, availableCopies: 3 }], pagination: { total: 42, page: 1, limit: 10, totalPages: 5 } } } } } },
+					400: { description: "Invalid pagination values.", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" }, example: { success: false, error: { message: "limit cannot exceed 100." } } } } },
+					401: { $ref: "#/components/responses/Unauthorized" },
+					403: { $ref: "#/components/responses/Forbidden" },
+					500: { $ref: "#/components/responses/InternalServerError" },
+				},
+			},
+		},
+		"/api/reports/overdue": {
+			get: {
+				tags: ["Reports"],
+				summary: "Get overdue borrowing report",
+				description: "Requires an active admin or librarian account. Lists unreturned borrowings whose due date has passed.",
+				operationId: "getOverdueReport",
+				security: [{ BearerAuth: [] }],
+				parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/Limit" }],
+				responses: {
+					200: { description: "Overdue total, paginated borrowing records, and generation time.", content: { "application/json": { schema: { $ref: "#/components/schemas/OverdueReportResponse" }, example: { success: true, data: { totalOverdue: 1, borrowings: [{ _id: "66d7f3c8a23b1e0012345680", member: { _id: "66d7f3c8a23b1e0012345678", firstName: "Avery", lastName: "Morgan", membershipNumber: "LIB-2026-0001" }, book: { _id: "66d7f3c8a23b1e0012345679", title: "The Left Hand of Darkness", author: "Ursula K. Le Guin", bookCode: "BK-0123456789AB" }, issuedBy: { _id: "66d7f3c8a23b1e0012345677", name: "Library Staff", email: "staff@example.com" }, borrowedAt: "2026-10-01T12:00:00.000Z", dueDate: "2026-10-10T12:00:00.000Z", returnedAt: null, status: "borrowed", createdAt: "2026-10-01T12:00:00.000Z", updatedAt: "2026-10-01T12:00:00.000Z", __v: 0 }], pagination: { total: 1, page: 1, limit: 10, totalPages: 1 }, generatedAt: "2026-10-16T12:00:00.000Z" } } } } },
+					400: { description: "Invalid pagination values.", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" }, example: { success: false, error: { message: "page must be a positive integer." } } } } },
+					401: { $ref: "#/components/responses/Unauthorized" },
+					403: { $ref: "#/components/responses/Forbidden" },
+					500: { $ref: "#/components/responses/InternalServerError" },
+				},
+			},
+		},
+		"/api/reports/borrowings": {
+			get: {
+				tags: ["Reports"],
+				summary: "Get borrowing history report",
+				description: "Requires an active admin or librarian account. Optionally filter by borrowed or returned status.",
+				operationId: "getBorrowingHistoryReport",
+				security: [{ BearerAuth: [] }],
+				parameters: [
+					{ $ref: "#/components/parameters/Page" },
+					{ $ref: "#/components/parameters/Limit" },
+					{ name: "status", in: "query", schema: { type: "string", enum: ["borrowed", "returned"] } },
+				],
+				responses: {
+					200: { description: "Total borrowing count, paginated borrowing records, and pagination metadata.", content: { "application/json": { schema: { $ref: "#/components/schemas/BorrowingHistoryReportResponse" }, example: { success: true, data: { total: 18, borrowings: [{ _id: "66d7f3c8a23b1e0012345680", member: { _id: "66d7f3c8a23b1e0012345678", firstName: "Avery", lastName: "Morgan", membershipNumber: "LIB-2026-0001" }, book: { _id: "66d7f3c8a23b1e0012345679", title: "The Left Hand of Darkness", author: "Ursula K. Le Guin", bookCode: "BK-0123456789AB" }, issuedBy: { _id: "66d7f3c8a23b1e0012345677", name: "Library Staff", email: "staff@example.com" }, borrowedAt: "2026-10-01T12:00:00.000Z", dueDate: "2026-10-20T12:00:00.000Z", returnedAt: null, status: "borrowed", createdAt: "2026-10-01T12:00:00.000Z", updatedAt: "2026-10-01T12:00:00.000Z", __v: 0 }], pagination: { total: 18, page: 1, limit: 10, totalPages: 2 } } } } } },
+					400: { description: "Invalid pagination or status value.", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" }, examples: { invalidPagination: { value: { success: false, error: { message: "page must be a positive integer." } } }, invalidStatus: { value: { success: false, error: { message: "Status must be borrowed or returned." } } } } } } },
+					401: { $ref: "#/components/responses/Unauthorized" },
+					403: { $ref: "#/components/responses/Forbidden" },
+					500: { $ref: "#/components/responses/InternalServerError" },
+				},
+			},
+		},
+		"/api/reports/members": {
+			get: {
+				tags: ["Reports"],
+				summary: "Get member activity report",
+				description: "Requires an active admin or librarian account. Includes borrowing activity for members on the requested page.",
+				operationId: "getMemberActivityReport",
+				security: [{ BearerAuth: [] }],
+				parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/Limit" }],
+				responses: {
+					200: { description: "Member total, paginated member records with activity counts, and pagination metadata.", content: { "application/json": { schema: { $ref: "#/components/schemas/MemberActivityReportResponse" }, example: { success: true, data: { totalMembers: 27, members: [{ _id: "66d7f3c8a23b1e0012345678", firstName: "Avery", lastName: "Morgan", membershipNumber: "LIB-2026-0001", status: "active", registeredAt: "2026-09-15T12:00:00.000Z", activity: { totalBorrowings: 4, currentBorrowings: 1, returnedBorrowings: 3 } }], pagination: { total: 27, page: 1, limit: 10, totalPages: 3 } } } } } },
+					400: { description: "Invalid pagination values.", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" }, example: { success: false, error: { message: "page must be a positive integer." } } } } },
+					401: { $ref: "#/components/responses/Unauthorized" },
+					403: { $ref: "#/components/responses/Forbidden" },
+					500: { $ref: "#/components/responses/InternalServerError" },
+				},
+			},
+		},
+		"/api/reports/returns": {
+			get: {
+				tags: ["Reports"],
+				summary: "Get returns report",
+				description: "Requires an active admin or librarian account.",
+				operationId: "getReturnsReport",
+				security: [{ BearerAuth: [] }],
+				parameters: [{ $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/Limit" }],
+				responses: {
+					200: { description: "Return total, paginated returned-book records, pagination metadata, and generation time.", content: { "application/json": { schema: { $ref: "#/components/schemas/ReturnsReportResponse" }, example: { success: true, data: { totalReturns: 12, returns: [{ _id: "66d7f3c8a23b1e0012345680", member: { _id: "66d7f3c8a23b1e0012345678", firstName: "Avery", lastName: "Morgan", membershipNumber: "LIB-2026-0001" }, book: { _id: "66d7f3c8a23b1e0012345679", title: "The Left Hand of Darkness", author: "Ursula K. Le Guin", bookCode: "BK-0123456789AB" }, issuedBy: { _id: "66d7f3c8a23b1e0012345677", name: "Library Staff", email: "staff@example.com" }, borrowedAt: "2026-10-01T12:00:00.000Z", dueDate: "2026-10-10T12:00:00.000Z", returnedAt: "2026-10-09T12:00:00.000Z", status: "returned", createdAt: "2026-10-01T12:00:00.000Z", updatedAt: "2026-10-09T12:00:00.000Z", __v: 0 }], pagination: { total: 12, page: 1, limit: 10, totalPages: 2 }, generatedAt: "2026-10-16T12:00:00.000Z" } } } } },
+					400: { description: "Invalid pagination values.", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" }, example: { success: false, error: { message: "limit cannot exceed 100." } } } } },
+					401: { $ref: "#/components/responses/Unauthorized" },
+					403: { $ref: "#/components/responses/Forbidden" },
+					500: { $ref: "#/components/responses/InternalServerError" },
+				},
+			},
+		},
 		"/api/auth/login": {
 			post: {
 				tags: ["Authentication"],
@@ -416,6 +525,8 @@ const swaggerDocument = {
 			BookId: { name: "id", in: "path", required: true, description: "MongoDB ObjectId of the book.", schema: { type: "string", pattern: "^[0-9a-fA-F]{24}$", example: "66d7f3c8a23b1e0012345678" } },
 			MemberId: { name: "id", in: "path", required: true, description: "MongoDB ObjectId of the member.", schema: { type: "string", pattern: "^[0-9a-fA-F]{24}$", example: "66d7f3c8a23b1e0012345678" } },
 			StaffId: { name: "id", in: "path", required: true, description: "MongoDB ObjectId of the staff user.", schema: { type: "string", pattern: "^[0-9a-fA-F]{24}$", example: "66d7f3c8a23b1e0012345678" } },
+			Page: { name: "page", in: "query", description: "One-based page number.", schema: { type: "integer", minimum: 1, default: 1 } },
+			Limit: { name: "limit", in: "query", description: "Results per page, up to 100.", schema: { type: "integer", minimum: 1, maximum: 100, default: 10 } },
 		},
 		responses: {
 			InvalidIdentifier: { description: "The ID could not be cast to a MongoDB ObjectId.", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" }, example: { success: false, error: { message: "Invalid identifier" } } } } },
@@ -425,6 +536,225 @@ const swaggerDocument = {
 			InternalServerError: { description: "Unexpected server error. The error handler hides the underlying error message.", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" }, example: { success: false, error: { message: "Internal server error" } } } } },
 		},
 		schemas: {
+			ReportPagination: {
+				type: "object",
+				required: ["total", "page", "limit", "totalPages"],
+				properties: {
+					total: { type: "integer", minimum: 0, example: 27 },
+					page: { type: "integer", minimum: 1, example: 1 },
+					limit: { type: "integer", minimum: 1, maximum: 100, example: 10 },
+					totalPages: { type: "integer", minimum: 0, example: 3 },
+				},
+			},
+			DashboardSummaryResponse: {
+				type: "object",
+				required: ["success", "data"],
+				properties: {
+					success: { type: "boolean", enum: [true] },
+					data: {
+						type: "object",
+						required: ["books", "members", "borrowings", "generatedAt"],
+						properties: {
+							books: {
+								type: "object",
+								required: ["activeTitles", "totalCopies", "availableCopies"],
+								properties: {
+									activeTitles: { type: "integer", minimum: 0 },
+									totalCopies: { type: "integer", minimum: 0 },
+									availableCopies: { type: "integer", minimum: 0 },
+								},
+							},
+							members: {
+								type: "object",
+								required: ["total", "active"],
+								properties: {
+									total: { type: "integer", minimum: 0 },
+									active: { type: "integer", minimum: 0 },
+								},
+							},
+							borrowings: {
+								type: "object",
+								required: ["current", "overdue"],
+								properties: {
+									current: { type: "integer", minimum: 0 },
+									overdue: { type: "integer", minimum: 0 },
+								},
+							},
+							generatedAt: { type: "string", format: "date-time" },
+						},
+					},
+				},
+			},
+			InventoryReportBook: {
+				type: "object",
+				required: ["_id", "title", "author", "category", "bookCode", "totalCopies", "availableCopies"],
+				properties: {
+					_id: { type: "string", pattern: "^[0-9a-fA-F]{24}$" },
+					title: { type: "string" },
+					author: { type: "string" },
+					category: { type: "string" },
+					bookCode: { type: "string" },
+					totalCopies: { type: "integer", minimum: 0 },
+					availableCopies: { type: "integer", minimum: 0 },
+				},
+			},
+			InventoryReportResponse: {
+				type: "object",
+				required: ["success", "data"],
+				properties: {
+					success: { type: "boolean", enum: [true] },
+					data: {
+						type: "object",
+						required: ["summary", "books", "pagination"],
+						properties: {
+							summary: {
+								type: "object",
+								required: ["totalTitles", "totalCopies", "availableCopies"],
+								properties: {
+									totalTitles: { type: "integer", minimum: 0 },
+									totalCopies: { type: "integer", minimum: 0 },
+									availableCopies: { type: "integer", minimum: 0 },
+								},
+							},
+							books: { type: "array", items: { $ref: "#/components/schemas/InventoryReportBook" } },
+							pagination: { $ref: "#/components/schemas/ReportPagination" },
+						},
+					},
+				},
+			},
+			ReportMemberReference: {
+				type: "object",
+				required: ["_id", "firstName", "lastName", "membershipNumber"],
+				properties: {
+					_id: { type: "string", pattern: "^[0-9a-fA-F]{24}$" },
+					firstName: { type: "string" },
+					lastName: { type: "string" },
+					membershipNumber: { type: "string" },
+				},
+			},
+			ReportBookReference: {
+				type: "object",
+				required: ["_id", "title", "author", "bookCode"],
+				properties: {
+					_id: { type: "string", pattern: "^[0-9a-fA-F]{24}$" },
+					title: { type: "string" },
+					author: { type: "string" },
+					bookCode: { type: "string" },
+				},
+			},
+			ReportStaffReference: {
+				type: "object",
+				required: ["_id", "name", "email"],
+				properties: {
+					_id: { type: "string", pattern: "^[0-9a-fA-F]{24}$" },
+					name: { type: "string" },
+					email: { type: "string", format: "email" },
+				},
+			},
+			ReportBorrowing: {
+				type: "object",
+				required: ["_id", "member", "book", "issuedBy", "borrowedAt", "dueDate", "returnedAt", "status", "createdAt", "updatedAt", "__v"],
+				properties: {
+					_id: { type: "string", pattern: "^[0-9a-fA-F]{24}$" },
+					member: { type: "object", nullable: true, allOf: [{ $ref: "#/components/schemas/ReportMemberReference" }] },
+					book: { type: "object", nullable: true, allOf: [{ $ref: "#/components/schemas/ReportBookReference" }] },
+					issuedBy: { type: "object", nullable: true, allOf: [{ $ref: "#/components/schemas/ReportStaffReference" }] },
+					borrowedAt: { type: "string", format: "date-time" },
+					dueDate: { type: "string", format: "date-time" },
+					returnedAt: { type: "string", format: "date-time", nullable: true },
+					status: { type: "string", enum: ["borrowed", "returned"] },
+					createdAt: { type: "string", format: "date-time" },
+					updatedAt: { type: "string", format: "date-time" },
+					__v: { type: "integer", minimum: 0 },
+				},
+			},
+			OverdueReportResponse: {
+				type: "object",
+				required: ["success", "data"],
+				properties: {
+					success: { type: "boolean", enum: [true] },
+					data: {
+						type: "object",
+						required: ["totalOverdue", "borrowings", "pagination", "generatedAt"],
+						properties: {
+							totalOverdue: { type: "integer", minimum: 0 },
+							borrowings: { type: "array", items: { $ref: "#/components/schemas/ReportBorrowing" } },
+							pagination: { $ref: "#/components/schemas/ReportPagination" },
+							generatedAt: { type: "string", format: "date-time" },
+						},
+					},
+				},
+			},
+			BorrowingHistoryReportResponse: {
+				type: "object",
+				required: ["success", "data"],
+				properties: {
+					success: { type: "boolean", enum: [true] },
+					data: {
+						type: "object",
+						required: ["total", "borrowings", "pagination"],
+						properties: {
+							total: { type: "integer", minimum: 0 },
+							borrowings: { type: "array", items: { $ref: "#/components/schemas/ReportBorrowing" } },
+							pagination: { $ref: "#/components/schemas/ReportPagination" },
+						},
+					},
+				},
+			},
+			MemberActivityReportMember: {
+				type: "object",
+				required: ["_id", "firstName", "lastName", "membershipNumber", "status", "registeredAt", "activity"],
+				properties: {
+					_id: { type: "string", pattern: "^[0-9a-fA-F]{24}$" },
+					firstName: { type: "string" },
+					lastName: { type: "string" },
+					membershipNumber: { type: "string" },
+					status: { type: "string", enum: ["active", "inactive"] },
+					registeredAt: { type: "string", format: "date-time" },
+					activity: {
+						type: "object",
+						required: ["totalBorrowings", "currentBorrowings", "returnedBorrowings"],
+						properties: {
+							totalBorrowings: { type: "integer", minimum: 0 },
+							currentBorrowings: { type: "integer", minimum: 0 },
+							returnedBorrowings: { type: "integer", minimum: 0 },
+						},
+					},
+				},
+			},
+			MemberActivityReportResponse: {
+				type: "object",
+				required: ["success", "data"],
+				properties: {
+					success: { type: "boolean", enum: [true] },
+					data: {
+						type: "object",
+						required: ["totalMembers", "members", "pagination"],
+						properties: {
+							totalMembers: { type: "integer", minimum: 0 },
+							members: { type: "array", items: { $ref: "#/components/schemas/MemberActivityReportMember" } },
+							pagination: { $ref: "#/components/schemas/ReportPagination" },
+						},
+					},
+				},
+			},
+			ReturnsReportResponse: {
+				type: "object",
+				required: ["success", "data"],
+				properties: {
+					success: { type: "boolean", enum: [true] },
+					data: {
+						type: "object",
+						required: ["totalReturns", "returns", "pagination", "generatedAt"],
+						properties: {
+							totalReturns: { type: "integer", minimum: 0 },
+							returns: { type: "array", items: { $ref: "#/components/schemas/ReportBorrowing" } },
+							pagination: { $ref: "#/components/schemas/ReportPagination" },
+							generatedAt: { type: "string", format: "date-time" },
+						},
+					},
+				},
+			},
 			IssueBookRequest: {
 				type: "object",
 				required: ["memberId", "bookId", "dueDate"],

@@ -4,14 +4,14 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import httpError from "../utils/httpError.js";
 
 const allowedFields = [
-    "title",
-    "author",
-    "category",
-    "publisher",
-    "isbn",
-    "totalCopies",
-    "availableCopies",
-    "description",
+  "title",
+  "author",
+  "category",
+  "publisher",
+  "isbn",
+  "totalCopies",
+  "availableCopies",
+  "description",
 ];
 
 export const createBook = asyncHandler(async (req, res) => {
@@ -96,7 +96,6 @@ export const getBooks = asyncHandler(async (req, res) => {
     Book.find(filter).sort({ createdAt: -1 }).skip(skip).limit(pageSize),
     Book.countDocuments(filter),
   ]);
-
   res.status(200).json({
     success: true,
     data: books,
@@ -207,9 +206,9 @@ export const deactivateBook = asyncHandler(async (req, res) => {
   book.isActive = false;
   await book.save();
 
-    res.status(200).json({
-        success: true,
-        message: "Book deactivated successfully.",
-        data: book,
-    });
+  res.status(200).json({
+    success: true,
+    message: "Book deactivated successfully.",
+    data: book,
+  });
 });
