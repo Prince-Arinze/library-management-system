@@ -50,7 +50,7 @@ const swaggerDocument = {
 		version: "1.0.0",
 		description: "API reference for the Library Management System. Book catalog reads are public; member, dashboard, report, and staff operations require an active staff bearer token.",
 	},
-	servers: [{ url: "/", description: "Current host" }],
+	servers: [{ url: "/", description: "Library API (same host)" }],
 	tags: [
 		{ name: "Health", description: "Service availability" },
 		{ name: "Authentication", description: "Sign in and retrieve the current user" },
@@ -398,9 +398,9 @@ const swaggerDocument = {
 				description: "Requires an active admin or librarian account. The staff user's ID is recorded as issuedBy.",
 				operationId: "issueBook",
 				security: [{ BearerAuth: [] }],
-				requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/IssueBookRequest" }, example: { memberId: "66d7f3c8a23b1e0012345678", bookId: "66d7f3c8a23b1e0012345679", dueDate: "2026-11-15T00:00:00.000Z" } } } },
+				requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/IssueBookRequest" }, example: { memberId: "66d7f3c8a23b1e0012345676", bookId: "66d7f3c8a23b1e0012345678", dueDate: "2026-11-15T00:00:00.000Z" } } } },
 				responses: {
-					201: { description: "Borrowing created and available book count decremented.", content: { "application/json": { schema: { $ref: "#/components/schemas/BorrowingResponse" } } } },
+					201: { description: "Borrowing created and available book count decremented. The returned book field contains the same MongoDB _id supplied as bookId.", content: { "application/json": { schema: { $ref: "#/components/schemas/BorrowingResponse" }, example: { success: true, data: { _id: "66d7f3c8a23b1e0012345680", member: "66d7f3c8a23b1e0012345676", book: "66d7f3c8a23b1e0012345678", issuedBy: "66d7f3c8a23b1e0012345677", borrowedAt: "2026-10-16T12:00:00.000Z", dueDate: "2026-11-15T00:00:00.000Z", returnedAt: null, status: "borrowed" } } } } },
 					400: { description: "Required values, ID formats, due date, member status, or book availability are invalid.", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" }, examples: { required: { value: { success: false, error: { message: "memberId, bookId, and dueDate are required." } } }, invalidId: { value: { success: false, error: { message: "Invalid memberId or bookId format." } } }, futureDate: { value: { success: false, error: { message: "dueDate must be a future date." } } }, unavailable: { value: { success: false, error: { message: "No copies of this book are currently available." } } } } } } },
 					401: { $ref: "#/components/responses/Unauthorized" },
 					403: { $ref: "#/components/responses/Forbidden" },
@@ -522,7 +522,7 @@ const swaggerDocument = {
 			BearerAuth: { type: "http", scheme: "bearer", bearerFormat: "JWT" },
 		},
 		parameters: {
-			BookId: { name: "id", in: "path", required: true, description: "MongoDB ObjectId of the book.", schema: { type: "string", pattern: "^[0-9a-fA-F]{24}$", example: "66d7f3c8a23b1e0012345678" } },
+			BookId: { name: "id", in: "path", required: true, description: "The book's MongoDB _id, generated automatically and returned by the API. This is not the human-readable bookCode.", schema: { type: "string", pattern: "^[0-9a-fA-F]{24}$", example: "66d7f3c8a23b1e0012345678" } },
 			MemberId: { name: "id", in: "path", required: true, description: "MongoDB ObjectId of the member.", schema: { type: "string", pattern: "^[0-9a-fA-F]{24}$", example: "66d7f3c8a23b1e0012345678" } },
 			StaffId: { name: "id", in: "path", required: true, description: "MongoDB ObjectId of the staff user.", schema: { type: "string", pattern: "^[0-9a-fA-F]{24}$", example: "66d7f3c8a23b1e0012345678" } },
 			Page: { name: "page", in: "query", description: "One-based page number.", schema: { type: "integer", minimum: 1, default: 1 } },
@@ -759,8 +759,8 @@ const swaggerDocument = {
 				type: "object",
 				required: ["memberId", "bookId", "dueDate"],
 				properties: {
-					memberId: { type: "string", pattern: "^[0-9a-fA-F]{24}$", example: "66d7f3c8a23b1e0012345678" },
-					bookId: { type: "string", pattern: "^[0-9a-fA-F]{24}$", example: "66d7f3c8a23b1e0012345679" },
+					memberId: { type: "string", pattern: "^[0-9a-fA-F]{24}$", example: "66d7f3c8a23b1e0012345676" },
+					bookId: { type: "string", pattern: "^[0-9a-fA-F]{24}$", example: "66d7f3c8a23b1e0012345678", description: "The book's MongoDB _id, generated automatically when the book is created. Use the 24-character hexadecimal _id returned by the API, not the human-readable bookCode." },
 					dueDate: { type: "string", format: "date-time" },
 				},
 			},
@@ -770,7 +770,7 @@ const swaggerDocument = {
 				properties: {
 					_id: { type: "string", pattern: "^[0-9a-fA-F]{24}$" },
 					member: { type: "string", pattern: "^[0-9a-fA-F]{24}$" },
-					book: { type: "string", pattern: "^[0-9a-fA-F]{24}$" },
+					book: { type: "string", pattern: "^[0-9a-fA-F]{24}$", description: "MongoDB _id of the book; this is the same value supplied as bookId when issuing it." },
 					issuedBy: { type: "string", pattern: "^[0-9a-fA-F]{24}$", description: "Authenticated staff user who issued the book." },
 					borrowedAt: { type: "string", format: "date-time" },
 					dueDate: { type: "string", format: "date-time" },
@@ -862,7 +862,7 @@ const swaggerDocument = {
 				type: "object",
 				required: ["_id", "firstName", "lastName", "membershipNumber", "status", "registeredAt"],
 				properties: {
-					_id: { type: "string", pattern: "^[0-9a-fA-F]{24}$", example: "66d7f3c8a23b1e0012345678" },
+					_id: { type: "string", pattern: "^[0-9a-fA-F]{24}$", example: "66d7f3c8a23b1e0012345678", description: "Generated automatically by MongoDB when the book is created; use this value as bookId in borrowing requests." },
 					firstName: { type: "string", example: "Avery" },
 					lastName: { type: "string", example: "Morgan" },
 					email: { type: "string", format: "email" },
