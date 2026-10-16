@@ -5,6 +5,7 @@ import cors from "cors";
 import mongoSanitize from "express-mongo-sanitize";
 
 import bookRoutes from "./routes/bookRoutes.js";
+import borrowingRoutes from "./routes/borrowingRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 
@@ -61,6 +62,9 @@ app.get("/health", (_req, res) => {
 
 // Books API
 app.use("/api/books", bookRoutes);
+
+// Borrowing API
+app.use("/api/borrowings", borrowingRoutes);
 
 // Dashboard API
 app.use("/api/dashboard", dashboardRoutes);
