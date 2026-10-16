@@ -3,6 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import httpError from "../utils/httpError.js";
 
 const allowedRoles = ["admin", "librarian"];
+const privilegedRoles = ["superAdmin", "admin"];
 
 const toUserResponse = (user) => ({
   id: user._id,
@@ -14,21 +15,17 @@ const toUserResponse = (user) => ({
 
 const preventSelfLockout = (user, requesterId) => {
   if (user._id.toString() === requesterId.toString()) {
-    throw httpError(400, "You cannot deactivate or demote your own account.");
+    throw httpError(400, "You cannot deactivate or change your own role.");
   }
 };
 
-const preventLastAdminRemoval = async (user) => {
-  if (user.role !== "admin" || !user.isActive) return;
-
-  const otherActiveAdmins = await User.countDocuments({
-    role: "admin",
-    isActive: true,
-    _id: { $ne: user._id },
-  });
-
-  if (otherActiveAdmins === 0) {
-    throw httpError(400, "The last active administrator cannot be deactivated or demoted.");
+const requireSuperAdminForPrivilegedUser = (user, requester) => {
+  if (
+    privilegedRoles.includes(user.role) &&
+    requester.role !== "superAdmin" &&
+    user._id.toString() !== requester._id.toString()
+  ) {
+    throw httpError(403, "Only a superAdmin can manage administrator accounts.");
   }
 };
 
@@ -66,6 +63,9 @@ export const createUser = asyncHandler(async (req, res) => {
   }
   if (role !== undefined && !allowedRoles.includes(role)) {
     throw httpError(400, "Role must be admin or librarian.");
+  }
+  if (role === "admin" && req.user.role !== "superAdmin") {
+    throw httpError(403, "Only a superAdmin can create administrator accounts.");
   }
 
   const normalizedEmail = email.trim().toLowerCase();
@@ -105,6 +105,9 @@ export const updateUser = asyncHandler(async (req, res) => {
   if (updates.role !== undefined && !allowedRoles.includes(updates.role)) {
     throw httpError(400, "Role must be admin or librarian.");
   }
+  if (updates.role === "admin" && req.user.role !== "superAdmin") {
+    throw httpError(403, "Only a superAdmin can assign the administrator role.");
+  }
   if (updates.isActive !== undefined && typeof updates.isActive !== "boolean") {
     throw httpError(400, "isActive must be a boolean.");
   }
@@ -112,13 +115,24 @@ export const updateUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) throw httpError(404, "User not found.");
 
-  const demotingSelf = user._id.toString() === req.user._id.toString() &&
-    (updates.role === "librarian" || updates.isActive === false);
-  if (demotingSelf) preventSelfLockout(user, req.user._id);
+  requireSuperAdminForPrivilegedUser(user, req.user);
 
-  const removesActiveAdmin = user.role === "admin" && user.isActive &&
-    (updates.role === "librarian" || updates.isActive === false);
-  if (removesActiveAdmin) await preventLastAdminRemoval(user);
+  const changingOwnRole =
+    updates.role !== undefined && updates.role !== user.role;
+  const deactivatingSelf = updates.isActive === false;
+  if (
+    user._id.toString() === req.user._id.toString() &&
+    (changingOwnRole || deactivatingSelf)
+  ) {
+    preventSelfLockout(user, req.user._id);
+  }
+
+  if (
+    user.role === "superAdmin" &&
+    (updates.role !== undefined || updates.isActive === false)
+  ) {
+    throw httpError(400, "The superAdmin account cannot be demoted or deactivated.");
+  }
 
   if (updates.name !== undefined) user.name = updates.name.trim();
   if (updates.role !== undefined) user.role = updates.role;
@@ -132,8 +146,13 @@ export const deactivateUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) throw httpError(404, "User not found.");
 
+  requireSuperAdminForPrivilegedUser(user, req.user);
+
+  if (user.role === "superAdmin") {
+    throw httpError(400, "The superAdmin account cannot be deactivated.");
+  }
+
   preventSelfLockout(user, req.user._id);
-  await preventLastAdminRemoval(user);
 
   user.isActive = false;
   await user.save();
@@ -148,6 +167,8 @@ export const deactivateUser = asyncHandler(async (req, res) => {
 export const activateUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) throw httpError(404, "User not found.");
+
+  requireSuperAdminForPrivilegedUser(user, req.user);
 
   user.isActive = true;
   await user.save();

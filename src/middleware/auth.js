@@ -51,7 +51,11 @@ export const authorize = (...roles) => {
         error: { message: "Authentication required." },
       });
     }
-    if (!roles.includes(req.user.role)) {
+    const grantedRoles = req.user.role === "superAdmin"
+      ? ["superAdmin", "admin", "librarian"]
+      : [req.user.role];
+
+    if (!roles.some((role) => grantedRoles.includes(role))) {
       return res.status(403).json({
         success: false,
         error: { message: "You are not authorized to access this resource." },

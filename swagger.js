@@ -54,7 +54,7 @@ const swaggerDocument = {
 	tags: [
 		{ name: "Health", description: "Service availability" },
 		{ name: "Authentication", description: "Sign in and retrieve the current user" },
-		{ name: "Administration", description: "Admin-only staff account management" },
+		{ name: "Administration", description: "Staff account management. superAdmin is the highest role and controls administrator accounts." },
 			{ name: "Members", description: "Staff-managed member records and borrowing history" },
 		{ name: "Borrowings", description: "Staff-issued book borrowings" },
 		{ name: "Books", description: "Create, search, retrieve, update, and deactivate books" },
@@ -203,7 +203,7 @@ const swaggerDocument = {
 			get: {
 				tags: ["Administration"],
 				summary: "List staff users",
-				description: "Requires an active admin account.",
+				description: "Requires an active admin or superAdmin account.",
 				operationId: "getUsers",
 				security: [{ BearerAuth: [] }],
 				responses: {
@@ -216,7 +216,7 @@ const swaggerDocument = {
 			post: {
 				tags: ["Administration"],
 				summary: "Create a staff user",
-				description: "Requires an active admin account. Passwords must contain at least six characters; the default role is librarian.",
+				description: "Requires an active admin or superAdmin account. Admins may create librarians; only superAdmin may create admins. Passwords must contain at least six characters; the default role is librarian.",
 				operationId: "createUser",
 				security: [{ BearerAuth: [] }],
 				requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/CreateUserRequest" }, example: { name: "Library Staff", email: "staff@example.com", password: "secure-password", role: "librarian" } } } },
@@ -235,7 +235,7 @@ const swaggerDocument = {
 			get: {
 				tags: ["Administration"],
 				summary: "Get a staff user",
-				description: "Requires an active admin account.",
+				description: "Requires an active admin or superAdmin account.",
 				operationId: "getUserById",
 				security: [{ BearerAuth: [] }],
 				responses: {
@@ -250,15 +250,15 @@ const swaggerDocument = {
 			patch: {
 				tags: ["Administration"],
 				summary: "Update a staff user",
-				description: "Requires an active admin account. The last active admin cannot be demoted or deactivated, and admins cannot demote or deactivate themselves.",
+				description: "Requires an active admin or superAdmin account. Only superAdmin may manage admin accounts. The superAdmin account cannot be demoted or deactivated, and users cannot change their own role or deactivate themselves.",
 				operationId: "updateUser",
 				security: [{ BearerAuth: [] }],
 				requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/UpdateUserRequest" }, example: { name: "Senior Librarian", role: "librarian", isActive: true } } } },
 				responses: {
 					200: { description: "The updated staff account.", content: { "application/json": { schema: { $ref: "#/components/schemas/AdminUserResponse" } } } },
-					400: { description: "Invalid user ID or fields, self-lockout attempt, or attempt to remove the last active admin.", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" }, example: { success: false, error: { message: "The last active administrator cannot be deactivated or demoted." } } } } },
+					400: { description: "Invalid fields, self-lockout attempt, or attempt to demote or deactivate the superAdmin account.", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" }, example: { success: false, error: { message: "The superAdmin account cannot be demoted or deactivated." } } } } },
 					401: { $ref: "#/components/responses/Unauthorized" },
-					403: { $ref: "#/components/responses/Forbidden" },
+					403: { description: "The caller is not a superAdmin but attempted to manage an admin account.", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" }, example: { success: false, error: { message: "Only a superAdmin can manage administrator accounts." } } } } },
 					404: { description: "Staff account not found.", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" }, example: { success: false, error: { message: "User not found." } } } } },
 					500: { $ref: "#/components/responses/InternalServerError" },
 				},
@@ -269,14 +269,14 @@ const swaggerDocument = {
 			patch: {
 				tags: ["Administration"],
 				summary: "Deactivate a staff user",
-				description: "Requires an active admin account. Admins cannot deactivate themselves or the last active admin.",
+				description: "Requires an active admin or superAdmin account. Admins may deactivate librarians; only superAdmin may deactivate admins. The superAdmin account cannot be deactivated.",
 				operationId: "deactivateUser",
 				security: [{ BearerAuth: [] }],
 				responses: {
 					200: { description: "Staff account deactivated.", content: { "application/json": { schema: { $ref: "#/components/schemas/AdminUserMutationResponse" } } } },
-					400: { description: "Invalid user ID, self-deactivation, or last-admin removal is not allowed.", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } } },
+					400: { description: "Self-deactivation or superAdmin deactivation is not allowed.", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } } },
 					401: { $ref: "#/components/responses/Unauthorized" },
-					403: { $ref: "#/components/responses/Forbidden" },
+					403: { description: "Only superAdmin may deactivate an admin account.", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" }, example: { success: false, error: { message: "Only a superAdmin can manage administrator accounts." } } } } },
 					404: { description: "Staff account not found.", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" }, example: { success: false, error: { message: "User not found." } } } } },
 					500: { $ref: "#/components/responses/InternalServerError" },
 				},
@@ -287,14 +287,14 @@ const swaggerDocument = {
 			patch: {
 				tags: ["Administration"],
 				summary: "Activate a staff user",
-				description: "Requires an active admin account.",
+				description: "Requires an active admin or superAdmin account. Only superAdmin may activate admin accounts.",
 				operationId: "activateUser",
 				security: [{ BearerAuth: [] }],
 				responses: {
 					200: { description: "Staff account activated.", content: { "application/json": { schema: { $ref: "#/components/schemas/AdminUserMutationResponse" } } } },
 					400: { $ref: "#/components/responses/InvalidIdentifier" },
 					401: { $ref: "#/components/responses/Unauthorized" },
-					403: { $ref: "#/components/responses/Forbidden" },
+					403: { description: "Only superAdmin may activate an admin account.", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" }, example: { success: false, error: { message: "Only a superAdmin can manage administrator accounts." } } } } },
 					404: { description: "Staff account not found.", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" }, example: { success: false, error: { message: "User not found." } } } } },
 					500: { $ref: "#/components/responses/InternalServerError" },
 				},
@@ -790,7 +790,7 @@ const swaggerDocument = {
 					name: { type: "string", minLength: 1, example: "Library Staff" },
 					email: { type: "string", format: "email", example: "staff@example.com" },
 					password: { type: "string", format: "password", minLength: 6 },
-					role: { type: "string", enum: ["admin", "librarian"], default: "librarian" },
+					role: { type: "string", enum: ["admin", "librarian"], default: "librarian", description: "Only superAdmin may create an admin; regular admins may create librarians." },
 				},
 			},
 			UpdateUserRequest: {
@@ -798,7 +798,7 @@ const swaggerDocument = {
 				minProperties: 1,
 				properties: {
 					name: { type: "string", minLength: 1 },
-					role: { type: "string", enum: ["admin", "librarian"] },
+					role: { type: "string", enum: ["admin", "librarian"], description: "Only superAdmin may assign the admin role." },
 					isActive: { type: "boolean" },
 				},
 			},
@@ -809,7 +809,7 @@ const swaggerDocument = {
 					id: { type: "string", pattern: "^[0-9a-fA-F]{24}$" },
 					name: { type: "string", example: "Library Staff" },
 					email: { type: "string", format: "email", example: "staff@example.com" },
-					role: { type: "string", enum: ["admin", "librarian"] },
+					role: { type: "string", enum: ["superAdmin", "admin", "librarian"] },
 					isActive: { type: "boolean", example: true },
 				},
 			},
@@ -862,7 +862,7 @@ const swaggerDocument = {
 				type: "object",
 				required: ["_id", "firstName", "lastName", "membershipNumber", "status", "registeredAt"],
 				properties: {
-					_id: { type: "string", pattern: "^[0-9a-fA-F]{24}$", example: "66d7f3c8a23b1e0012345678", description: "Generated automatically by MongoDB when the book is created; use this value as bookId in borrowing requests." },
+					_id: { type: "string", pattern: "^[0-9a-fA-F]{24}$", example: "66d7f3c8a23b1e0012345678", description: "MongoDB ID of this member." },
 					firstName: { type: "string", example: "Avery" },
 					lastName: { type: "string", example: "Morgan" },
 					email: { type: "string", format: "email" },
@@ -923,7 +923,7 @@ const swaggerDocument = {
 					id: { type: "string", example: "66d7f3c8a23b1e0012345678" },
 					name: { type: "string", example: "Library Staff" },
 					email: { type: "string", format: "email", example: "librarian@example.com" },
-					role: { type: "string", enum: ["admin", "librarian"] },
+					role: { type: "string", enum: ["superAdmin", "admin", "librarian"] },
 					isActive: { type: "boolean", example: true },
 				},
 			},

@@ -78,10 +78,10 @@ You should get:
 | `GET` | `/api/books/:id` | Retrieve a book; public |
 | `PATCH` | `/api/books/:id` | Update a book; admin or librarian |
 | `PATCH` | `/api/books/:id/deactivate` | Deactivate a book; admin or librarian |
-| `GET`, `POST` | `/users` | List or create staff users; admin only |
-| `GET`, `PATCH` | `/users/:id` | Retrieve or update a staff user; admin only |
-| `PATCH` | `/users/:id/activate` | Activate a staff user; admin only |
-| `PATCH` | `/users/:id/deactivate` | Deactivate a staff user; admin only |
+| `GET`, `POST` | `/users` | List staff users; admins create librarians, superAdmin can also create admins |
+| `GET`, `PATCH` | `/users/:id` | Retrieve or update a staff user; admin or superAdmin |
+| `PATCH` | `/users/:id/activate` | Activate a staff user; admin or superAdmin |
+| `PATCH` | `/users/:id/deactivate` | Deactivate a staff user; admin or superAdmin |
 
 The API accepts JSON request bodies and allows requests from localhost and `https://test-app.app`. See `/api/api-docs` for request schemas, authentication requirements, and endpoint responses.
 
@@ -89,11 +89,11 @@ The API accepts JSON request bodies and allows requests from localhost and `http
 
 Send `POST /api/auth/login` with an email and password. A successful response contains a JWT and the staff user under `data`. Send that token as `Authorization: Bearer <token>` to `GET /api/auth/me`. The API returns errors using `{ "success": false, "error": { "message": "..." } }`; login rejects missing fields with `400` and invalid credentials or inactive accounts with `401`.
 
-To create the first administrator, set `ADMIN_NAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` in `.env`, then run `node createAdmin.js`. The script does not use a default password.
+To create the first superAdmin, set `ADMIN_NAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` in `.env`, then run `node createAdmin.js`. The script creates a superAdmin, or promotes the configured existing admin if no superAdmin exists. It does not use a default password.
 
 Member routes require `Authorization: Bearer <token>` from an active staff account. Admins and librarians can register, view, and update member records; only admins can deactivate a member. Deactivation retains the record and its borrowing history. Empty borrowing histories return `200` with an empty `data` array.
 
-Creating, updating, or deactivating books, issuing borrowings, and viewing dashboard or report data requires an active admin or librarian bearer token. Book catalog reads and the health check are public. Public catalog reads show active books only; an active admin or librarian token is required to view inactive books. Staff-user management requires an active admin token.
+Creating, updating, or deactivating books, issuing borrowings, and viewing dashboard or report data requires an active admin or librarian bearer token. Book catalog reads and the health check are public. Public catalog reads show active books only; an active admin or librarian token is required to view inactive books. Staff-user management requires an active admin or superAdmin token. Admins can manage librarian accounts; only superAdmin can create, update, activate, or deactivate admin accounts. Staff deletion is a soft deactivation so borrowing audit history is preserved. A superAdmin cannot be demoted or deactivated through the API.
 
 ## Using the shared helpers
 

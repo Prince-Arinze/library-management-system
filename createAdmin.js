@@ -16,20 +16,33 @@ if (!name || !email || !password) {
 try {
   await connectDB();
 
-  const adminExists = await User.findOne({ email });
-  if (adminExists) {
-    console.log('Admin already exists');
+  const superAdminExists = await User.findOne({ role: 'superAdmin' });
+  if (superAdminExists) {
+    console.log('superAdmin already exists');
     process.exit();
   }
 
-  const admin = await User.create({
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    if (existingUser.role !== 'admin') {
+      console.error('The configured email belongs to a non-admin account.');
+      process.exit(1);
+    }
+
+    existingUser.role = 'superAdmin';
+    await existingUser.save();
+    console.log('superAdmin promoted:', existingUser.email);
+    process.exit();
+  }
+
+  const superAdmin = await User.create({
     name,
     email,
     password,
-    role: 'admin'
+    role: 'superAdmin'
   });
 
-  console.log('ADMIN CREATED:', admin.email);
+  console.log('superAdmin created:', superAdmin.email);
   process.exit();
 } catch (err) {
   console.error(err);
