@@ -129,11 +129,19 @@ export const getOverdueReport = asyncHandler(async (req, res) => {
       .lean(),
   ]);
 
+  const report = borrowings.map((borrowing) => ({
+    ...borrowing,
+    daysOverdue: Math.max(
+      1,
+      Math.ceil((now.getTime() - borrowing.dueDate.getTime()) / 86400000),
+    ),
+  }));
+
   res.status(200).json({
     success: true,
     data: {
       totalOverdue,
-      borrowings,
+      borrowings: report,
       pagination: buildPagination(totalOverdue, page, limit),
       generatedAt: now,
     },
