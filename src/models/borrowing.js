@@ -48,6 +48,14 @@ const borrowingSchema = new mongoose.Schema(
   },
 );
 
+borrowingSchema.index({ status: 1, dueDate: 1 }, { name: "status_dueDate" });
+borrowingSchema.index(
+  { status: 1, returnedAt: -1 },
+  { name: "status_returnedAt" },
+);
+borrowingSchema.index({ member: 1, status: 1 }, { name: "member_status" });
+borrowingSchema.index({ borrowedAt: -1 }, { name: "borrowedAt_desc" });
+
 const Borrowing = mongoose.model("Borrowing", borrowingSchema);
 
 export default Borrowing;

@@ -6,11 +6,14 @@ import mongoSanitize from "express-mongo-sanitize";
 import memberRouter from "./routes/memberRoute.js";
 import bookRoutes from "./routes/bookRoutes.js";
 import swaggerRoutes from "../swagger.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js";
+import reportRoutes from "./routes/reportRoutes.js";
 
+import authRoutes from "./routes/authRoutes.js"
+import userRoutes from "./routes/userRoutes.js"
+import borrowingRoutes from "./routes/borrowingRoutes.js"
 const app = express();
 app.use(helmet());
-app.use(cors());
-app.use(express.json());
 
 const allowedOrigins = ["https://test-app.app"];
 
@@ -24,10 +27,13 @@ app.use(
       ) {
         return callback(null, true);
       }
+
       callback(new Error("Not allowed by CORS"));
     },
   }),
 );
+
+app.use(express.json());
 
 app.use((req, _res, next) => {
   for (const key of ["body", "params", "headers"]) {
@@ -46,8 +52,6 @@ app.use((req, _res, next) => {
   next();
 });
 
-app.use("/api/members", memberRouter);
-
 app.get("/health", (_req, res) => {
   res.json({
     success: true,
@@ -57,13 +61,25 @@ app.get("/health", (_req, res) => {
   });
 });
 
+// Books API
 app.use("/api/books", bookRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/users", userRoutes);
+app.use("/api/members", memberRouter);
+app.use("/api/borrowings", borrowingRoutes);
 app.use("/api-docs", swaggerRoutes);
+
+// Dashboard API
+app.use("/api/dashboard", dashboardRoutes);
+
+// Reports API
+app.use("/api/reports", reportRoutes);
 
 app.use((_req, _res, next) => {
   next(Object.assign(new Error("Route not found"), { status: 404 }));
 });
 
+// Central error handler
 app.use((error, _req, res, _next) => {
   if (error.name === "ValidationError") {
     return res.status(400).json({

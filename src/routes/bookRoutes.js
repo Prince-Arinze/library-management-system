@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { authorize, optionalProtect, protect } from "../middleware/auth.js";
 
 import {
     createBook,
@@ -11,13 +12,12 @@ import {
 const router = Router();
 
 router.route("/")
-    .post(createBook)
-    .get(getBooks);
+    .post(protect, authorize("admin", "librarian"), createBook)
+    .get(optionalProtect, getBooks);
 
-// Keep specific routes above /:id if you add any later.
-router.patch("/:id/deactivate", deactivateBook);
+router.patch("/:id/deactivate", protect, authorize("admin", "librarian"), deactivateBook);
 router.route("/:id")
-    .get(getBookById)
-    .patch(updateBook);
+    .get(optionalProtect, getBookById)
+    .patch(protect, authorize("admin", "librarian"), updateBook);
 
 export default router;
